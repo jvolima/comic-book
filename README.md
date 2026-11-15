@@ -31,6 +31,33 @@ Comic Book Reader/Writer is a desktop application for reading, organizing and cr
 - **Tags** for classifying books by genre or style.
 - **Library view** with a tag filter.
 
+## How to build
+
+### Prerequisites
+- C++17 compatible compiler (GCC, Clang, or MSVC)
+- CMake 3.16 or higher
+- Qt 6 (`Widgets` module) — optional if building only the core library
+
+### Build & Run
+
+```bash
+cmake -S . -B build
+cmake --build build
+./build/comic_reader
+```
+
+> **Note:** If Qt 6 is installed in a custom directory (for example via the Qt Online Installer or Homebrew on macOS), pass its path using `-DCMAKE_PREFIX_PATH`:
+> ```bash
+> cmake -S . -B build -DCMAKE_PREFIX_PATH="/path/to/Qt/6.x.x/macos"
+> ```
+
+To build only the `comic_core` library without the Qt interface:
+
+```bash
+cmake -S . -B build -DBUILD_UI=OFF
+cmake --build build
+```
+
 ## Roadmap
 
 - [ ] **M0 - Setup & Analysis**
