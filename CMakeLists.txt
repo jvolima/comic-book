@@ -22,6 +22,8 @@ if(BUILD_UI)
 
     qt_add_executable(comic_reader
         src/ui/main.cpp
+        src/ui/comicbookreader.h
+        src/ui/comicbookreader.cpp
     )
 
     target_link_libraries(comic_reader
