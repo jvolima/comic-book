@@ -1,5 +1,7 @@
 # Comic Book Reader/Writer
 
+[![Build](https://github.com/jvolima/comic-book/actions/workflows/build.yml/badge.svg)](https://github.com/jvolima/comic-book/actions/workflows/build.yml)
+
 Comic Book Reader/Writer is a desktop application for reading, organizing and creating digital comic books in the `.cbz` and `.cbr` formats. It focuses on a smooth reading experience, with asynchronous loading, page prefetching and image filters that keep text sharp. Its architecture is designed so that new formats and image filters can be added easily.
 
 ## Features

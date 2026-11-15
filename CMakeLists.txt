@@ -7,6 +7,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(BUILD_UI "Compile the graphical interface using Qt" ON)
 
+enable_testing()
+
 add_library(comic_core
     src/core/main.cpp
 )
