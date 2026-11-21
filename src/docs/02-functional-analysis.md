@@ -5,7 +5,7 @@ This document is the functional analysis, it answers two questions:
 1. What are the **functional blocks** of the program, and what is each one responsible for?
 2. How do these blocks **interact** with each other and with their environment (files, threads, user)?
 
-It builds on the [usage analysis](01-usage-analysis.md): every requirement listed there (UI-1 … UI-9) must be served by one of the blocks below (see [section 6](#6-traceability)). It stays at the level of *functions*. Concrete classes and their relationships are the subject of the next step (class diagram and abstract interfaces).
+It builds on the [usage analysis](01-usage-analysis.md): every requirement listed there (UI-1 … UI-9) must be served by one of the blocks below (see [section 6](#6-traceability)). It stays at the level of *functions*. Concrete classes and their relationships are the subject of the next step: the [architecture and class diagram](03-architecture.md).
 
 ---
 
@@ -30,7 +30,7 @@ The two lowest layers are where most of the **extensibility** required by the as
 
 **Responsibility:** give a uniform view of a comic archive, whatever its format.
 
-- **Detect the format from the file signature** (magic bytes), not from the extension. For example, `samples/fake_extension.cbr` is really a ZIP file.
+- **Detect the format from the file signature** (magic bytes), not from the extension. For example, `src/samples/fake_extension.cbr` is really a ZIP file.
 
   | Format | Signature |
   |---|---|
@@ -74,7 +74,7 @@ The two lowest layers are where most of the **extensibility** required by the as
 
 **Notes:**
 - One codec per format, all registered in a **codec registry** that picks the codec by signature. JPEG and BMP are implemented first, then PNG (assignment, Task 1).
-- A decoded page is about 10× larger than the compressed file (24 MB for 2000×3000 RGBA). Decoded bitmaps are therefore never kept "just in case": they go through the cache (FB-5), which has a memory budget.
+- A decoded page is 10–20× larger than the compressed file (24 MB for 2000×3000 RGBA, against 1–2 MB of JPEG). Decoded bitmaps are therefore never kept "just in case": they go through the cache (FB-5), which has a memory budget.
 - Codecs are stateless, so several pages can be decoded in parallel.
 
 **Does not:** read archives, resize, or decide which page to decode.
@@ -86,14 +86,15 @@ The two lowest layers are where most of the **extensibility** required by the as
 **Responsibility:** the model of a comic book. A book is an ordered list of pages plus metadata.
 
 - **Build the page list from the archive entries:**
-  - keep image entries only, ignoring things like `Thumbs.db`, `.DS_Store`, `__MACOSX/`, `info.xml`, `ComicInfo.xml` and `toc.xml` (see `samples/mixed.cbz`);
-  - include images in sub-folders (`samples/mixed.cbz`);
-  - sort with a **natural sort**, so `2.jpg` comes before `10.jpg` (`samples/natural_sort.cbz`). Comparison is case-insensitive on the full path.
+  - keep image entries only, ignoring things like `Thumbs.db`, `.DS_Store`, `__MACOSX/`, `info.xml`, `ComicInfo.xml` and `toc.xml` (see `src/samples/mixed.cbz`);
+  - recognise images by their extension **or, when an entry has no known extension, by its signature** (first bytes): images inside archives sometimes have no extension at all (assignment, footnote 10);
+  - include images in sub-folders (`src/samples/mixed.cbz`);
+  - sort with a **natural sort**, so `2.jpg` comes before `10.jpg` (`src/samples/natural_sort.cbz`). Comparison is case-insensitive on the full path.
 - **Page:** a *lightweight descriptor*, not the pixels. It holds:
   - its index in the book;
   - a reference to its source (an archive entry, or a file on disk when authoring);
   - its dimensions, once probed;
-  - a state: *unknown → probed → decoded* / *error*.
+  - a state: *unknown → probed* / *error*. Whether the page is currently decoded is not a page state: the cache (FB-5) knows it, because decoded pixels can be evicted at any time.
 - **Give access to the bytes of a page:** the book is the only block that talks to the archive in order to read pages.
 - **Table of contents:** an ordered (and possibly nested) list of *(title → page)* entries. It is read from and written to a `toc.xml` file at the root of the archive. Other readers ignore that file, so the book stays compatible with them. Each entry stores both the page index and the entry file name, so it can be checked again if pages are reordered.
 - **Metadata:** title, series, volume, authors, ISBN. Read from `ComicInfo.xml` (the de facto standard used by other readers) when present.
@@ -150,7 +151,7 @@ Two levels, because the two results cost very different amounts to produce:
 A third, optional level, the **raw bytes cache** *(book, page) → compressed bytes*, is used for solid RAR archives, where extracting an entry again is expensive.
 
 **Rules:**
-- **LRU eviction** with a **memory budget in bytes** (configurable, e.g. 512 MB in total), not a number of entries, because page sizes vary a lot.
+- **LRU eviction** with a **memory budget in bytes** (configurable, e.g. 512 MB in total for the decoded and rendered caches), not a number of entries, because page sizes vary a lot. The raw bytes cache has its own cap, since it must hold a whole solid archive to be useful.
 - Entries currently on screen are **pinned**: they cannot be evicted while displayed.
 - Changing the size or the filter just produces new keys. Old entries are not deleted explicitly; they age out under LRU.
 - Closing a book removes all of its entries.
@@ -230,7 +231,7 @@ A third, optional level, the **raw bytes cache** *(book, page) → compressed by
   - **recent books** list.
 - **Cover thumbnails** cached on disk, so the library opens fast.
 - **Folder scan:** a long job (FB-6) that finds books in a folder and adds them.
-- **Series awareness** (extra): find "the next volume" so the reader can offer it at the end of a book.
+- **Series** (optional, the assignment's *BookCollection*): books grouped by series and ordered by volume, from `ComicInfo.xml` or set by the user, so the reader can offer the next volume at the end of a book.
 - **Online reference** (extra): link a book to its page on bedetheque.com.
 
 ---

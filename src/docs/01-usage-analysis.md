@@ -6,7 +6,7 @@ This document is the usage analysis, it covers:
 2. the **features** users expect;
 3. the **interactions** between the user and the software.
 
-It is written from the reader's point of view, not the implementation's. Its purpose is to set the requirements for the graphical interface (section 5) and to show what the architecture must be able to support later, even if the demonstrator does not implement everything.
+It is written from the reader's point of view, not the implementation's. Its purpose is to set the requirements for the graphical interface ([section 6](#6-resulting-ui-requirements)) and to show what the architecture must be able to support later, even if the demonstrator does not implement everything.
 
 ---
 
@@ -24,14 +24,14 @@ All three profiles share one need: **reading comfort**. The software is *user-ce
 
 ### 1.2 Devices
 
-- **Desktop computer with a large screen**: This is the best setup for two-page spreads. Pages are usually *upscaled* or only slightly downscaled.
+- **Desktop computer with a large screen**: This is the best setup for two-page spreads. Pages are only slightly downscaled (or upscaled, for low-resolution scans).
 - **Laptop**: One page at a time, or a spread with heavy downscaling. Battery and memory are more limited, and the keyboard and trackpad are the main input devices.
 - **Touch screen or convertible laptop**: Swipe to turn pages, pinch to zoom. Listed under *Extras*.
 
 Consequences for the design:
 
 - Scanned pages are usually **much larger than the display area** (e.g. 2000×3000 px shown at about 700×1050). Downscaling is the normal case, so the quality of the resize filter (low-pass filtering, anti-aliasing) is a central concern, not a detail.
-- A decoded page uses a lot of memory: about **24 MB** for 2000×3000 RGBA, roughly 10× its compressed JPEG size. Keeping a whole 200-page book in memory (about 5 GB) is not an option, so we need a cache with a memory limit and on-demand decoding.
+- A decoded page uses a lot of memory: about **24 MB** for 2000×3000 RGBA, 10–20× its compressed JPEG size (typically 1–2 MB). Keeping a whole 200-page book in memory (about 5 GB) is not an option, so we need a cache with a memory limit and on-demand decoding.
 - The window can be resized or switched to full screen at any time. Rendered pages must be recomputed for the new size without freezing the interface.
 
 ### 1.3 Situations of use
@@ -46,9 +46,9 @@ Consequences for the design:
 
 ## 2. Desired features
 
-Features are grouped as requested in the issue. The **Priority** column means:
+Features are grouped into essentials, authoring, library and extras. The **Priority** column means:
 
-- **Required**: listed in the assignment's minimum services.
+- **Required**: listed in the assignment's minimum services, or part of the demonstrator it describes (Step 2).
 - **Planned**: part of the full specification, and the architecture must allow it.
 - **Optional**: nice to have, done if time allows.
 
@@ -65,8 +65,9 @@ The **Milestone** column points to the [roadmap](../../README.md#roadmap).
 | Fit to screen | Scale pages automatically to the available area, and recompute when the window is resized. | Required | M2 |
 | Two-page spread | Show two pages side by side. If their sizes differ slightly, scale them to the same height so they look like one spread. Single wide pages (an existing spread) are shown alone. | Required | M5 |
 | Resize filters | Choose the resize filter: one suited to **text** (sharp, e.g. Lanczos / bicubic + sharpening) or one suited to **artwork** (smooth, e.g. bilinear / area averaging). Low-pass filtering when downscaling. | Required | M4 |
-| Zoom & fit modes | Zoom in and out, actual size, *fit page*, *fit width*. Pan with the mouse when zoomed in. | Planned | M5 |
-| Prefetching | Decode and resize the next and previous pages in the background, so turning a page is instant. | Planned | M3 |
+| Zoom | Zoom in and out, actual size. Pan with the mouse when zoomed in (assignment, Step 2 Phase D). | Required | M5 |
+| Fit modes | *Fit page*, *fit width* (assignment, Step 3). | Planned | M5 |
+| Prefetching | Decode and resize the next and previous pages in the background, so turning a page is instant (assignment, Step 2 Phase D). | Required | M3 |
 | Full screen | Hide menus, toolbars and panels; show only the pages. | Planned | M2 / M5 |
 | Text enhancement | Filters that reduce JPEG artefacts around lettering and fix scanning defects. | Planned | M4 |
 
@@ -77,7 +78,7 @@ The **Milestone** column points to the [roadmap](../../README.md#roadmap).
 | Extract pages | Select one page, a range or a list of pages and save them as image files in a folder. Optionally convert them to another format. | Required | M6 |
 | Assemble a book | Create a new `.cbz` from image files and/or pages taken from other books. Reorder pages by drag-and-drop before saving. | Required | M6 |
 | Table of contents | Add, edit and remove entries (title → page) in an existing book. Stored as `toc.xml` inside the archive, so other readers simply ignore it. Browse the TOC from a side panel. | Required | M6 |
-| Book metadata | Title, series, volume number, authors, ISBN, stored next to the TOC. | Optional | M6 / M8 |
+| Book metadata | Title, series, volume number, authors, ISBN. Read from `ComicInfo.xml` (the de facto standard used by other readers) when present. | Optional | M6 / M8 |
 | Write `.cbr` | Create RAR archives. RAR compression is proprietary, so `.cbz` is the default output. | Optional | M8 |
 
 ### 2.3 Library
@@ -140,7 +141,7 @@ This section defines how the user interacts with the software: **user action →
 | `Home` / \|◀ button | First page. |
 | `End` / ▶\| button | Last page. |
 | `Ctrl+G`, or click on the page counter | "Go to page" field. Typing a number and `Enter` jumps there. |
-| Mouse wheel | Scrolls inside the page when zoomed in. At the top or bottom edge, a further scroll turns the page. |
+| Mouse wheel | Scrolls inside the page when zoomed in. At the top or bottom edge, a further scroll turns the page. In *fit page* mode (nothing to scroll), each wheel step turns the page. |
 | Click a TOC entry or thumbnail | Jumps to that page. |
 | Reaching the last page and pressing *next* again | Non-modal message *"End of book"*. Offers to open the next volume of the series if the library knows it. |
 | Manga mode on | `←` and the left click zone become *next*, `→` and the right click zone become *previous*. Spreads are laid out right to left. |
@@ -193,7 +194,7 @@ This section defines how the user interacts with the software: **user action →
 |---|---|---|---|---|
 | `→` `PgDn` | Next page | | `Ctrl+O` | Open book |
 | `←` `PgUp` | Previous page | | `Ctrl+W` | Close book |
-| `Space` / `Shift+Space` | Scroll / turn page forward / backward | | `Ctrl+S` | Save (TOC changes) |
+| `Space` / `Shift+Space`, `Backspace` | Scroll or turn page forward / backward | | `Ctrl+S` | Save (TOC changes) |
 | `Home` / `End` | First / last page | | `Ctrl+N` | New book (authoring) |
 | `Ctrl+G` | Go to page | | `Ctrl+E` | Extract pages |
 | `+` / `-` | Zoom in / out | | `Ctrl+L` | Library |
@@ -234,7 +235,7 @@ Marc is a collector. He wants a single `.cbz` holding the three short stories sc
 6. `Ctrl+S` writes `toc.xml` into the archive. When he opens the book in another reader, it still works: the extra file is simply ignored.
 7. In the library he tags the book *anthology* and *sci-fi*.
 
-**What this requires:** reading pages from several archives (ZIP and RAR), encoding and writing a ZIP archive, background compression with progress, a TOC model stored as XML inside the archive, and tags.
+**What this requires:** reading pages from several archives (ZIP and RAR), writing a ZIP archive (copying the original image bytes, without re-encoding), background compression with progress, a TOC model stored as XML inside the archive, and tags.
 
 ### Scenario 3: Yuki reads a manga series on a laptop with poor-quality scans
 
@@ -272,7 +273,7 @@ In full screen, only element 8 is shown. The toolbar (2–6) slides in when the 
 
 ## 6. Resulting UI requirements
 
-This analysis leads to the following requirements for the interface and, indirectly, for the architecture (detailed in `02-functional-analysis.md`):
+This analysis leads to the following requirements for the interface and, indirectly, for the architecture (detailed in [02 – Functional Analysis](02-functional-analysis.md)):
 
 - **UI-1**: The UI thread never decodes, resizes or compresses images. All of that is asynchronous, and results come back as signals or callbacks per page.
 - **UI-2**: Page loading uses a **priority queue**: the requested page first, then its neighbours (prefetch), then the rest of the book.
