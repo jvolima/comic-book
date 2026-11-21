@@ -1,0 +1,165 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="780" viewBox="0 0 1200 780" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <style>
+      .frame   { fill: #ffffff; stroke: #333; stroke-width: 2; }
+      .bar     { fill: #f2f2f2; stroke: #bbb; stroke-width: 1; }
+      .btn     { fill: #ffffff; stroke: #888; stroke-width: 1; rx: 4; }
+      .btn-on  { fill: #dbe8ff; stroke: #3b6fd8; stroke-width: 1.5; rx: 4; }
+      .lbl     { font-size: 13px; fill: #222; }
+      .small   { font-size: 11px; fill: #555; }
+      .hint    { font-size: 13px; fill: #bbb; }
+      .page    { fill: #fafafa; stroke: #222; stroke-width: 1; }
+      .panel   { fill: #e9e9e9; stroke: #666; stroke-width: 1.2; }
+      .bubble  { fill: #ffffff; stroke: #444; stroke-width: 1; }
+      .textln  { stroke: #999; stroke-width: 2; stroke-linecap: round; }
+      .sep     { stroke: #bbb; stroke-width: 1; }
+      .marker  { fill: #d7263d; }
+      .mnum    { font-size: 12px; font-weight: bold; fill: #fff; text-anchor: middle; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="780" fill="#fbfbf8"/>
+  <text x="20" y="770" class="small">Comic Book Reader/Writer: main window sketch (reading mode, two-page spread)</text>
+
+  <!-- Window frame -->
+  <rect x="20" y="20" width="1160" height="720" rx="8" class="frame"/>
+
+  <!-- Title bar -->
+  <rect x="21" y="21" width="1158" height="34" rx="7" fill="#e4e4e4"/>
+  <circle cx="40" cy="38" r="6" fill="#ff5f57"/>
+  <circle cx="60" cy="38" r="6" fill="#febc2e"/>
+  <circle cx="80" cy="38" r="6" fill="#28c840"/>
+  <text x="600" y="43" class="lbl" text-anchor="middle">Comic Book Reader: Saga_vol1.cbr</text>
+
+  <!-- Menu bar -->
+  <rect x="21" y="55" width="1158" height="30" class="bar"/>
+  <text x="34"  y="75" class="lbl">File</text>
+  <text x="82"  y="75" class="lbl">Edit</text>
+  <text x="130" y="75" class="lbl">View</text>
+  <text x="182" y="75" class="lbl">Book</text>
+  <text x="234" y="75" class="lbl">Library</text>
+  <text x="298" y="75" class="lbl">Help</text>
+
+  <!-- Toolbar -->
+  <rect x="21" y="85" width="1158" height="50" class="bar"/>
+  <!-- Open -->
+  <rect x="30" y="95" width="70" height="30" class="btn"/>
+  <text x="65" y="115" class="lbl" text-anchor="middle">Open…</text>
+  <line x1="107" y1="95" x2="107" y2="125" class="sep"/>
+  <!-- Navigation -->
+  <rect x="115" y="95" width="36" height="30" class="btn"/>
+  <text x="133" y="115" class="lbl" text-anchor="middle">|◀</text>
+  <rect x="155" y="95" width="36" height="30" class="btn"/>
+  <text x="173" y="115" class="lbl" text-anchor="middle">◀</text>
+  <rect x="195" y="95" width="120" height="30" class="btn"/>
+  <text x="255" y="115" class="lbl" text-anchor="middle">12–13 / 200</text>
+  <rect x="319" y="95" width="36" height="30" class="btn"/>
+  <text x="337" y="115" class="lbl" text-anchor="middle">▶</text>
+  <rect x="359" y="95" width="36" height="30" class="btn"/>
+  <text x="377" y="115" class="lbl" text-anchor="middle">▶|</text>
+  <line x1="402" y1="95" x2="402" y2="125" class="sep"/>
+  <!-- Zoom / fit -->
+  <rect x="410" y="95" width="30" height="30" class="btn"/>
+  <text x="425" y="115" class="lbl" text-anchor="middle">−</text>
+  <rect x="444" y="95" width="100" height="30" class="btn"/>
+  <text x="494" y="115" class="lbl" text-anchor="middle">Fit page ▾</text>
+  <rect x="548" y="95" width="30" height="30" class="btn"/>
+  <text x="563" y="115" class="lbl" text-anchor="middle">+</text>
+  <rect x="582" y="95" width="84" height="30" class="btn"/>
+  <text x="624" y="115" class="lbl" text-anchor="middle">Fit width</text>
+  <line x1="673" y1="95" x2="673" y2="125" class="sep"/>
+  <!-- Display mode -->
+  <rect x="680" y="95" width="68" height="30" class="btn"/>
+  <text x="714" y="115" class="lbl" text-anchor="middle">1 page</text>
+  <rect x="750" y="95" width="74" height="30" class="btn-on"/>
+  <text x="787" y="115" class="lbl" text-anchor="middle">2 pages</text>
+  <line x1="830" y1="95" x2="830" y2="125" class="sep"/>
+  <!-- Filter -->
+  <rect x="836" y="95" width="198" height="30" class="btn"/>
+  <text x="935" y="115" class="lbl" text-anchor="middle">Filter: Lanczos (text) ▾</text>
+  <!-- Manga / full screen -->
+  <rect x="1040" y="95" width="54" height="30" class="btn"/>
+  <text x="1067" y="115" class="lbl" text-anchor="middle">RTL</text>
+  <rect x="1098" y="95" width="74" height="30" class="btn"/>
+  <text x="1135" y="115" class="lbl" text-anchor="middle">⛶ Full</text>
+
+  <!-- Side panel -->
+  <rect x="21" y="135" width="239" height="565" fill="#f7f7f7" stroke="#bbb"/>
+  <rect x="21" y="135" width="120" height="30" fill="#ffffff" stroke="#bbb"/>
+  <text x="81" y="155" class="lbl" text-anchor="middle" font-weight="bold">Contents</text>
+  <rect x="141" y="135" width="119" height="30" fill="#ececec" stroke="#bbb"/>
+  <text x="200" y="155" class="lbl" text-anchor="middle">Thumbnails</text>
+  <text x="34" y="192" class="lbl">1. Prologue</text>
+  <text x="246" y="192" class="small" text-anchor="end">1</text>
+  <rect x="26" y="203" width="229" height="26" fill="#dbe8ff"/>
+  <text x="34" y="221" class="lbl" font-weight="bold">2. The Arrival</text>
+  <text x="246" y="221" class="small" text-anchor="end">9</text>
+  <text x="34" y="250" class="lbl">3. Night City</text>
+  <text x="246" y="250" class="small" text-anchor="end">31</text>
+  <text x="34" y="279" class="lbl">4. The Chase</text>
+  <text x="246" y="279" class="small" text-anchor="end">58</text>
+  <text x="34" y="308" class="lbl">5. Epilogue</text>
+  <text x="246" y="308" class="small" text-anchor="end">187</text>
+  <rect x="30" y="655" width="100" height="30" class="btn"/>
+  <text x="80" y="675" class="lbl" text-anchor="middle">+ Add entry</text>
+  <rect x="140" y="655" width="110" height="30" class="btn"/>
+  <text x="195" y="675" class="lbl" text-anchor="middle">Edit…</text>
+
+  <!-- Reading area -->
+  <rect x="260" y="135" width="919" height="565" fill="#3a3a3a"/>
+  <text x="285"  y="422" class="hint">‹ prev</text>
+  <text x="1155" y="422" class="hint" text-anchor="end">next ›</text>
+
+  <!-- Left page (p. 12) -->
+  <rect x="385" y="160" width="333" height="500" class="page"/>
+  <rect x="397" y="172" width="309" height="150" class="panel"/>
+  <rect x="397" y="330" width="150" height="160" class="panel"/>
+  <rect x="555" y="330" width="151" height="160" class="panel"/>
+  <rect x="397" y="498" width="309" height="150" class="panel"/>
+  <ellipse cx="470" cy="207" rx="48" ry="20" class="bubble"/>
+  <polygon points="475,226 488,246 492,224" class="bubble"/>
+  <line x1="442" y1="203" x2="498" y2="203" class="textln"/>
+  <line x1="450" y1="212" x2="490" y2="212" class="textln"/>
+  <ellipse cx="640" cy="535" rx="44" ry="18" class="bubble"/>
+  <line x1="615" y1="532" x2="665" y2="532" class="textln"/>
+  <line x1="622" y1="541" x2="658" y2="541" class="textln"/>
+  <text x="551" y="684" class="hint" text-anchor="middle">12</text>
+
+  <!-- Right page (p. 13) -->
+  <rect x="722" y="160" width="333" height="500" class="page"/>
+  <rect x="734" y="172" width="150" height="230" class="panel"/>
+  <rect x="892" y="172" width="151" height="230" class="panel"/>
+  <rect x="734" y="410" width="309" height="238" class="panel"/>
+  <ellipse cx="968" cy="210" rx="44" ry="19" class="bubble"/>
+  <polygon points="960,228 952,250 972,229" class="bubble"/>
+  <line x1="944" y1="207" x2="992" y2="207" class="textln"/>
+  <line x1="950" y1="216" x2="986" y2="216" class="textln"/>
+  <ellipse cx="800" cy="450" rx="50" ry="20" class="bubble"/>
+  <line x1="772" y1="446" x2="828" y2="446" class="textln"/>
+  <line x1="780" y1="455" x2="820" y2="455" class="textln"/>
+  <text x="888" y="684" class="hint" text-anchor="middle">13</text>
+
+  <!-- Status bar -->
+  <rect x="21" y="700" width="1158" height="39" fill="#f2f2f2" stroke="#bbb"/>
+  <text x="34" y="724" class="lbl">Saga_vol1.cbr</text>
+  <text x="200" y="724" class="lbl">Loading pages</text>
+  <rect x="300" y="712" width="200" height="14" rx="3" fill="#fff" stroke="#888"/>
+  <rect x="300" y="712" width="87" height="14" rx="3" fill="#3b6fd8"/>
+  <text x="510" y="724" class="small">87 / 200</text>
+  <text x="820" y="724" class="lbl">Filter: Lanczos (text)</text>
+  <text x="1170" y="724" class="lbl" text-anchor="end">Zoom: fit page (64%)</text>
+
+  <!-- Numbered markers (see legend in 01-usage-analysis.md) -->
+  <g>
+    <circle cx="340" cy="70" r="11" class="marker"/><text x="340" y="74" class="mnum">1</text>
+    <circle cx="395" cy="92" r="11" class="marker"/><text x="395" y="96" class="mnum">2</text>
+    <circle cx="666" cy="92" r="11" class="marker"/><text x="666" y="96" class="mnum">3</text>
+    <circle cx="824" cy="92" r="11" class="marker"/><text x="824" y="96" class="mnum">4</text>
+    <circle cx="1034" cy="92" r="11" class="marker"/><text x="1034" y="96" class="mnum">5</text>
+    <circle cx="1172" cy="92" r="11" class="marker"/><text x="1172" y="96" class="mnum">6</text>
+    <circle cx="252" cy="172" r="11" class="marker"/><text x="252" y="176" class="mnum">7</text>
+    <circle cx="1060" cy="160" r="11" class="marker"/><text x="1060" y="164" class="mnum">8</text>
+    <circle cx="188" cy="706" r="11" class="marker"/><text x="188" y="710" class="mnum">9</text>
+  </g>
+</svg>
