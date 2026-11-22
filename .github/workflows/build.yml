@@ -11,6 +11,7 @@ concurrency:
 
 jobs:
   build:
+    name: Build with Qt
     runs-on: ubuntu-latest
 
     steps:
@@ -30,5 +31,23 @@ jobs:
         run: cmake --build build --parallel
 
       - name: Test
-        working-directory: build
-        run: ctest --output-on-failure --no-tests=ignore
+        run: ctest --test-dir build --output-on-failure
+
+  core-without-qt:
+    # Enforces 03-architecture P1: comic_core must build and pass its tests
+    # on a machine where Qt is not installed.
+    name: Core without Qt
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_UI=OFF
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure

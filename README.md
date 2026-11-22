@@ -60,6 +60,16 @@ cmake -S . -B build -DBUILD_UI=OFF
 cmake --build build
 ```
 
+### Run tests
+
+Unit tests use [GoogleTest](https://github.com/google/googletest), which CMake downloads automatically during configuration (no system install needed). After building, run:
+
+```bash
+ctest --test-dir build --output-on-failure
+```
+
+Test sources live in `src/tests/`: any new `.cpp` file there is picked up by the `comic_core_tests` executable on the next CMake configure. Tests can reach the sample comics in `src/samples/` through the `SAMPLES_DIR` macro, for example `std::string(SAMPLES_DIR) + "/basic.cbz"`.
+
 ## Roadmap
 
 - [ ] **M0 - Setup & Analysis**

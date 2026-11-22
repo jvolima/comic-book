@@ -5,19 +5,18 @@
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
-    class ComicBookReader;
+	class ComicBookReader;
 }
 QT_END_NAMESPACE
 
-class ComicBookReader : public QMainWindow
-{
-    Q_OBJECT
+class ComicBookReader : public QMainWindow {
+	Q_OBJECT
 
-    public:
-        explicit ComicBookReader(QWidget *parent = nullptr);
-        ~ComicBookReader();
+	public:
+		explicit ComicBookReader(QWidget *parent = nullptr);
+		~ComicBookReader();
 
-    private:
-        Ui::ComicBookReader *ui;
-        QString currentFile;
+	private:
+		Ui::ComicBookReader *ui;
+		QString currentFile;
 };
