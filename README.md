@@ -38,6 +38,9 @@ Comic Book Reader/Writer is a desktop application for reading, organizing and cr
 ### Prerequisites
 - C++17 compatible compiler (GCC, Clang, or MSVC)
 - CMake 3.16 or higher
+- [libzip](https://libzip.org/) — used to read `.cbz` archives
+  - Debian/Ubuntu: `sudo apt-get install libzip-dev zipcmp zipmerge ziptool` (the three tool packages are required: libzip-dev's CMake config checks that those binaries exist)
+  - macOS: `brew install libzip`
 - Qt 6 (`Widgets` module) — optional if building only the core library
 
 ### Build & Run

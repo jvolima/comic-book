@@ -12,11 +12,19 @@ option(BUILD_UI "Compile the graphical interface using Qt" ON)
 
 enable_testing()
 
-add_library(comic_core
-    src/core/main.cpp
+file(GLOB_RECURSE COMIC_CORE_SOURCES CONFIGURE_DEPENDS
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/core/*.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/core/*.hpp
 )
 
+add_library(comic_core ${COMIC_CORE_SOURCES})
+
 target_include_directories(comic_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/core)
+
+# libzip reads and writes .cbz (ZIP) archives. PUBLIC because zip_archive.hpp includes zip.h,
+# so anything including that header (e.g. the tests) also needs libzip's include path.
+find_package(libzip REQUIRED)
+target_link_libraries(comic_core PUBLIC libzip::zip)
 
 # ---------- Unit tests (GoogleTest) ----------
 include(FetchContent)
