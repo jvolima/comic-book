@@ -17,9 +17,9 @@ class Archive {
 		virtual bool open(const std::string& path) = 0;
 		virtual void close() = 0;
 		virtual bool isOpen() const = 0;
-		virtual std::vector<ArchiveEntry> listEntries() = 0;
-		virtual Bytes readEntry(const std::string& name) = 0;
-		virtual void readAll(const EntryVisitor& visitor) {
+		virtual std::vector<ArchiveEntry> listEntries() const = 0;
+		virtual Bytes readEntry(const std::string& name) const = 0;
+		virtual void readAll(const EntryVisitor& visitor) const {
 			for (const ArchiveEntry& entry : listEntries()) {
 				if (entry.isDirectory) {
 					continue;

@@ -205,7 +205,7 @@ classDiagram
     }
     class ZipArchive {
         +matches(Bytes header)$ bool
-        -m_zip ZipHandle
+        -m_zip unique_ptr~zip_t~
     }
     class RarArchive {
         +matches(Bytes header)$ bool
@@ -249,9 +249,9 @@ classDiagram
 
 | Class | Why it exists |
 |---|---|
-| `Archive` | The **common object model** for comic archives, as the assignment requires: whatever the library behind it (often a C API), the rest of the program only sees *list the entries*, *read one entry* and *read them all in order*. `isRandomAccess()` tells the loader whether reading entry *n* is cheap (ZIP) or requires decompressing everything before it (solid RAR, 7z), so it can choose a strategy ([02 §3.4](02-functional-analysis.md#34-how-does-loading-interact-with-decompression)). For non-random-access archives the loader uses `readAll()`, which goes through the archive **once, in order**. Calling `readEntry()` for each page of a solid archive would decompress from the start every time, which is O(n²). `readAll()` is virtual but not abstract: the default implementation simply calls `readEntry()` for each entry, so random-access formats don't need to override it. |
+| `Archive` | The **common object model** for comic archives, as the assignment requires: whatever the library behind it (often a C API), the rest of the program only sees *list the entries*, *read one entry* and *read them all in order*. `isRandomAccess()` tells the loader whether reading entry *n* is cheap (ZIP) or requires decompressing everything before it (solid RAR, 7z), so it can choose a strategy ([02 §3.4](02-functional-analysis.md#34-how-does-loading-interact-with-decompression)). For non-random-access archives the loader uses `readAll()`, which goes through the archive **once, in order**. Calling `readEntry()` for each page of a solid archive would decompress from the start every time, which is O(n²). `readAll()` is virtual but not abstract: the default implementation simply calls `readEntry()` for each entry, so random-access formats don't need to override it. `listEntries()`, `readEntry()` and `readAll()` are `const`: reading does not change what the archive contains, so a `const Archive&` can still be read. |
 | `ArchiveEntry` | What [02 FB-1](02-functional-analysis.md#fb-1--archive-access) asks the listing to return: name, uncompressed size and whether it is a directory. Formats don't mark directories the same way (a ZIP uses a trailing `/`, RAR uses a flag), so `Book` must not guess from the name. The size lets the loader allocate buffers and estimate memory use. |
-| `ZipArchive` | `.cbz` support. Wraps the ZIP library (an *Adapter*). Random access via the central directory. |
+| `ZipArchive` | `.cbz` support. Wraps **libzip** (an *Adapter*). The open archive is a `zip_t*` held in a `std::unique_ptr` whose deleter is `zip_discard`, so it is released on `close()` and in the destructor. Random access via the central directory, so it keeps the default `readAll()`. `matches()` checks the `PK\x03\x04` signature. `formatName()` returns `"ZIP"`, the name it is registered under in `ArchiveFactory`. |
 | `RarArchive` | `.cbr` support. Wraps the RAR reading library. Detects solid archives and overrides `readAll()` with a single streaming pass. |
 | `ArchiveWriter` | Writing is a **separate interface** from reading, because not every format can be written: RAR compression is proprietary. A reader class is never forced to implement a `write` it cannot honour (*Interface Segregation*). Used by authoring and by "save table of contents". |
 | `ZipArchiveWriter` | Writes `.cbz` files, the output format for new books. |
@@ -863,8 +863,8 @@ The step-by-step version of the same flow, at the level of functional blocks, is
        void close() override;
        bool isOpen() const override;
        std::vector<ArchiveEntry> listEntries() const override;
-       Bytes readEntry(const std::string& name) override;
-       void readAll(const EntryVisitor& visitor) override;  // one pass over a solid archive
+       Bytes readEntry(const std::string& name) const override;
+       void readAll(const EntryVisitor& visitor) const override;  // one pass over a solid archive
        bool isRandomAccess() const override;   // false for solid 7z archives
        std::string formatName() const override { return "7z"; }
    };
@@ -878,7 +878,7 @@ The step-by-step version of the same flow, at the level of functional blocks, is
                            nullptr /* read-only for now */});
    ```
 
-3. **Build it:** add the files to `comic_core` in `CMakeLists.txt` and link the 7z library.
+3. **Build it:** files under `src/core/` are picked up by `comic_core` automatically. Add `find_package` and `target_link_libraries` for the 7z library in `CMakeLists.txt`, and install it in CI and in the README requirements.
 4. **Test it:** add `src/samples/basic.cb7` (same 5 pages as `basic.cbz`) and a unit test checking that it opens, lists 5 pages and decodes them.
 
 **Nothing else changes.** `Book` gets the reader from `ArchiveFactory::open()`. Because `isRandomAccess()` returns `false`, `PageLoader` automatically streams the archive with `readAll()` into the raw bytes cache. The open dialog's filter comes from `supportedExtensions()`, so `*.cb7` appears there on its own.
@@ -907,7 +907,7 @@ Derive from `PageLayout` (e.g. `ContinuousLayout`) and add a `QAction` to the *V
 
 | Need | Candidates | Note |
 |---|---|---|
-| ZIP read/write | **libzip**, minizip-ng | Random access, writing with the *store* method (images are already compressed). |
+| ZIP read/write | **libzip** (chosen) | Random access, writing with the *store* method (images are already compressed). Linked as `libzip::zip`. On Debian/Ubuntu, `libzip-dev` alone is not enough: its CMake config also requires the `zipcmp`, `zipmerge` and `ziptool` packages. |
 | RAR read | **libarchive**, UnRAR library | libarchive reads RAR 4 and RAR 5 (and also 7z and tar, which would make `.cb7` / `.cbt` cheap later). It is stream-based. |
 | JPEG | **libjpeg-turbo** | Fast; can decode straight to greyscale and downscale by 1/2, 1/4 or 1/8 while decoding (useful for thumbnails). |
 | PNG | **libpng** (or `stb_image` for decoding only) | |
