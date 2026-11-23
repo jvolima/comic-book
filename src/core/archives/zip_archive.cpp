@@ -68,7 +68,13 @@ Bytes ZipArchive::readEntry(const std::string& name) const {
 	if (totalRead < 0 || static_cast<zip_uint64_t>(totalRead) != info.size) {
 		return {};
 	}
-	
+
+	// Extra read to reach end of entry: makes libzip check the CRC (-1 = corrupt, > 0 = extra data).
+	char extra;
+	if (zip_fread(file.get(), &extra, 1) != 0) {
+		return {};
+	}
+
 	return data;
 }
 
