@@ -12,9 +12,12 @@ option(BUILD_UI "Compile the graphical interface using Qt" ON)
 
 enable_testing()
 
-add_library(comic_core
-    src/core/main.cpp
+file(GLOB_RECURSE COMIC_CORE_SOURCES CONFIGURE_DEPENDS
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/core/*.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/core/*.hpp
 )
+
+add_library(comic_core ${COMIC_CORE_SOURCES})
 
 target_include_directories(comic_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/core)
 
