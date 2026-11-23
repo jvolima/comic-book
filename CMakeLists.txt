@@ -21,6 +21,10 @@ add_library(comic_core ${COMIC_CORE_SOURCES})
 
 target_include_directories(comic_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/core)
 
+# libzip reads and writes .cbz (ZIP) archives. It stays PRIVATE: no core header exposes zip.h.
+find_package(libzip REQUIRED)
+target_link_libraries(comic_core PRIVATE libzip::zip)
+
 # ---------- Unit tests (GoogleTest) ----------
 include(FetchContent)
 
