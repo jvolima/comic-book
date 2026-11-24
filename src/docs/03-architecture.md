@@ -6,10 +6,7 @@ This document is the coarse-grained architecture:
 2. how the design achieves **modularity and extensibility**: a new archive format, image format or filter is added *by deriving a class*, without changing existing code;
 3. the **interactions** between these classes, following the assignment's request model: *DISPLAY asks FILTER to apply ALGORITHM to the IMAGE, to be displayed and stored in the cache*.
 
-It turns the functional blocks of the [functional analysis](02-functional-analysis.md) (FB-1 … FB-9) into classes. The next step (issue #8) turns this diagram into C++ headers.
-
-> **Status:** proposal to be discussed and agreed on by the whole team. It defines the contract between `comic_core` and the UI. Open questions are listed in [section 9](#9-open-questions-for-the-team).
-
+It turns the functional blocks of the [functional analysis](02-functional-analysis.md) (FB-1 … FB-9) into classes.
 ---
 
 ## 1. Design principles
@@ -41,7 +38,7 @@ Type aliases used below: `Bytes = std::vector<uint8_t>`, `ImagePtr = std::shared
 | `method()*` | pure virtual method |
 | `method()$` | static method |
 
-Pointer and reference qualifiers (`*`, `&`, `const`) are left out of the diagrams, because a trailing `*` is Mermaid's marker for an abstract method. For example, `codecFor()` actually returns `const ImageCodec*` (null if no codec matches). Exact signatures are fixed in the headers (#8).
+Pointer and reference qualifiers (`*`, `&`, `const`) are left out of the diagrams, because a trailing `*` is Mermaid's marker for an abstract method. For example, `codecFor()` actually returns `const ImageCodec*` (null if no codec matches). Exact signatures are fixed in the headers.
 
 ---
 
