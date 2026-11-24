@@ -1,5 +1,9 @@
+#pragma once
+
 #include "comic_error.hpp"
 
 class ArchiveError : public ComicError {
-    ArchiveError(const std::string& message);
+	public:
+		ArchiveError(const std::string& message);
 };
+	
