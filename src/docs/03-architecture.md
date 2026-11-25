@@ -19,7 +19,7 @@ It turns the functional blocks of the [functional analysis](02-functional-analys
 | P4 | **Stateless where possible.** | Codecs and filters keep no state between calls. One shared instance serves every thread, with no locking. Archives are stateful (an open file), so each book gets its own instance. |
 | P5 | **One owner for asynchrony.** | Only `PageLoader` starts threads. `Book`, `Page`, codecs and filters are plain synchronous classes, easy to test, which the loader calls from its workers. |
 | P6 | **Shared, immutable images.** | A finished image is handed around as `ImagePtr = std::shared_ptr<const Image>`. The cache, the loader and the UI can hold the same image without copying it, and without one thread modifying it under another. |
-| P7 | **Explicit errors.** | `open()` returns `false` when a file cannot be opened. Unexpected failures (corrupt entry, undecodable image) throw an exception derived from `ComicError`. `PageLoader` catches it and reports a *page error*, so one bad page never stops reading. |
+| P7 | **Errors are exceptions, not `bool`s.** | An operation that can fail returns `void` (or its result) and **throws** an exception derived from `ComicError` when it fails: `ArchiveError` for archives, `DecodeError` for images. It never returns a `bool` to say whether it worked, because a `bool` is easy to ignore and does not say *why* it failed. `bool` return values are kept for questions (`isOpen()`, `canDecode()`, `matches()`) and for callbacks that ask whether to go on (`EntryVisitor`, `ProgressCallback`). Exceptions never cross threads: `PageLoader` catches them on the worker thread and reports them through its callbacks, e.g. a *page error*, so one bad page never stops reading. |
 
 Type aliases used below: `Bytes = std::vector<uint8_t>`, `ImagePtr = std::shared_ptr<const Image>`.
 
@@ -185,7 +185,7 @@ classDiagram
 classDiagram
     class Archive {
         <<abstract>>
-        +open(string path) bool*
+        +open(string path) void*
         +close() void*
         +isOpen() bool*
         +listEntries() vector~ArchiveEntry~*
@@ -211,9 +211,12 @@ classDiagram
     }
     class ArchiveWriter {
         <<abstract>>
-        +create(string path) bool*
+        +create(string path) void*
         +addEntry(string name, Bytes data) void*
-        +finish() bool*
+        +finish() void*
+        +abort() void*
+        +isOpen() bool*
+        +formatName() string*
     }
     class ZipArchiveWriter
     class ArchiveFormat {
@@ -242,18 +245,18 @@ classDiagram
     ArchiveFactory ..> ArchiveWriter : creates
 ```
 
-`SignatureMatcher = bool (*)(const Bytes& header)`, `ReaderCreator = std::function<std::unique_ptr<Archive>()>`, `WriterCreator = std::function<std::unique_ptr<ArchiveWriter>()>` (may be empty), `EntryVisitor = std::function<bool(const ArchiveEntry&, const Bytes&)>` (returns `false` to stop).
+`SignatureMatcher = bool (*)(const Bytes& header)`, `ReaderCreator = std::function<std::unique_ptr<Archive>()>`, `WriterCreator = std::function<std::unique_ptr<ArchiveWriter>()>` (empty for formats that cannot be written), `EntryVisitor = std::function<bool(const ArchiveEntry&, const Bytes&)>` (returns `false` to stop).
 
 | Class | Why it exists |
 |---|---|
-| `Archive` | The **common object model** for comic archives, as the assignment requires: whatever the library behind it (often a C API), the rest of the program only sees *list the entries*, *read one entry* and *read them all in order*. `isRandomAccess()` tells the loader whether reading entry *n* is cheap (ZIP) or requires decompressing everything before it (solid RAR, 7z), so it can choose a strategy ([02 §3.4](02-functional-analysis.md#34-how-does-loading-interact-with-decompression)). For non-random-access archives the loader uses `readAll()`, which goes through the archive **once, in order**. Calling `readEntry()` for each page of a solid archive would decompress from the start every time, which is O(n²). `readAll()` is virtual but not abstract: the default implementation simply calls `readEntry()` for each entry, so random-access formats don't need to override it. `listEntries()`, `readEntry()` and `readAll()` are `const`: reading does not change what the archive contains, so a `const Archive&` can still be read. |
+| `Archive` | The **common object model** for comic archives, as the assignment requires: whatever the library behind it (often a C API), the rest of the program only sees *list the entries*, *read one entry* and *read them all in order*. `isRandomAccess()` tells the loader whether reading entry *n* is cheap (ZIP) or requires decompressing everything before it (solid RAR, 7z), so it can choose a strategy ([02 §3.4](02-functional-analysis.md#34-how-does-loading-interact-with-decompression)). For non-random-access archives the loader uses `readAll()`, which goes through the archive **once, in order**. Calling `readEntry()` for each page of a solid archive would decompress from the start every time, which is O(n²). `readAll()` is virtual but not abstract: the default implementation simply calls `readEntry()` for each entry, so random-access formats don't need to override it. `listEntries()`, `readEntry()` and `readAll()` are `const`: reading does not change what the archive contains, so a `const Archive&` can still be read. `open()` returns nothing: it throws `ArchiveError`, with the library's error message, when the file cannot be opened. |
 | `ArchiveEntry` | What [02 FB-1](02-functional-analysis.md#fb-1--archive-access) asks the listing to return: name, uncompressed size and whether it is a directory. Formats don't mark directories the same way (a ZIP uses a trailing `/`, RAR uses a flag), so `Book` must not guess from the name. The size lets the loader allocate buffers and estimate memory use. |
 | `ZipArchive` | `.cbz` support. Wraps **libzip** (an *Adapter*). The open archive is a `zip_t*` held in a `std::unique_ptr` whose deleter is `zip_discard`, so it is released on `close()` and in the destructor. Random access via the central directory, so it keeps the default `readAll()`. `matches()` checks the `PK\x03\x04` signature. `formatName()` returns `"ZIP"`, the name it is registered under in `ArchiveFactory`. |
 | `RarArchive` | `.cbr` support. Wraps the RAR reading library. Detects solid archives and overrides `readAll()` with a single streaming pass. |
-| `ArchiveWriter` | Writing is a **separate interface** from reading, because not every format can be written: RAR compression is proprietary. A reader class is never forced to implement a `write` it cannot honour (*Interface Segregation*). Used by authoring and by "save table of contents". |
+| `ArchiveWriter` | Writing is a **separate interface** from reading, because not every format can be written: RAR compression is proprietary. A reader class is never forced to implement a `write` it cannot honour (*Interface Segregation*). Used by authoring and by "save table of contents". The lifecycle is `create(path)`, then `addEntry(name, data)` once per file, then `finish()`, which writes the archive to disk. `abort()` discards a partly written archive instead, for example when a page cannot be read halfway through. `create()` fails at once if the target directory does not exist, and `finish()` refuses an archive with no entries, so an empty save can never replace an existing book. When `finish()` fails, the writer is closed and any existing file is left untouched. Like `Archive`, failures throw `ArchiveError` instead of returning `bool`. `addEntry()` takes the bytes by `const&`, because they are whole images and must not be copied. `isOpen()` and `formatName()` mirror the reader. Copying is disabled, as in `Archive`, because a writer owns an open file. |
 | `ZipArchiveWriter` | Writes `.cbz` files, the output format for new books. |
-| `ArchiveFormat` | Everything the program needs to know about one format, in one record: its name, extensions (for the open dialog filter), signature test and how to create a reader and a writer. |
-| `ArchiveFactory` | **Chooses the format from the file signature**, not the extension (`src/samples/fake_extension.cbr` is a ZIP). It tries each registered `matches()` on the first bytes of the file and creates the matching reader. Nothing outside it knows the concrete archive classes. `supportedExtensions()` feeds the open dialog, so a new format shows up there automatically. |
+| `ArchiveFormat` | Everything the program needs to know about one format, in one record: its name, extensions (for the open dialog filter), signature test and how to create a reader and a writer. `matches` defaults to `nullptr`, and `createReader` / `createWriter` start empty. A read-only format such as RAR leaves `createWriter` empty, so `ArchiveFactory::createWriter()` checks it and throws `ArchiveError`, instead of calling an empty `std::function` (which would throw `std::bad_function_call`). |
+| `ArchiveFactory` | **Chooses the format from the file signature**, not the extension (`src/samples/fake_extension.cbr` is a ZIP). It tries each registered `matches()` on the first bytes of the file and creates the matching reader. Nothing outside it knows the concrete archive classes. `supportedExtensions()` feeds the open dialog, so a new format shows up there automatically. `open()` and `detect()` throw `ArchiveError` when no registered format matches the file. `createWriter()` throws `ArchiveError` when the format is unknown or cannot be written. Neither returns an empty pointer to signal failure (P7). |
 
 `matches()` is **static**: the format can be detected before any instance is created.
 
@@ -387,7 +390,7 @@ classDiagram
 ```mermaid
 classDiagram
     class Book {
-        +open(string path) bool
+        +open(string path) void
         +close() void
         +isOpen() bool
         +id() BookId
@@ -478,7 +481,7 @@ classDiagram
 
 | Class | Why it exists |
 |---|---|
-| `Book` | The assignment's **BOOK**: an ordered set of pages plus a table of contents and metadata. `open()` asks `ArchiveFactory` for the right reader, then builds the page list: it skips system files (`Thumbs.db`, `__MACOSX/`, …), keeps image entries (by extension with `ImageCodecFactory::isImageName`, or by signature with `codecFor()` for entries with no known extension, since images inside archives sometimes have none: assignment, footnote 10), sorts them **naturally** (`2.jpg` before `10.jpg`), and reads `toc.xml` / `ComicInfo.xml` if present. It is the **only owner of the archive handle**: `readEntry()` and `readAll()` lock a mutex, because archive libraries are not thread-safe. Opening does **not** decode anything, which is what makes asynchronous opening possible. `Book` itself is synchronous (P5); `PageLoader` calls `open()` on a worker thread. |
+| `Book` | The assignment's **BOOK**: an ordered set of pages plus a table of contents and metadata. `open()` asks `ArchiveFactory` for the right reader, then builds the page list: it skips system files (`Thumbs.db`, `__MACOSX/`, …), keeps image entries (by extension with `ImageCodecFactory::isImageName`, or by signature with `codecFor()` for entries with no known extension, since images inside archives sometimes have none: assignment, footnote 10), sorts them **naturally** (`2.jpg` before `10.jpg`), and reads `toc.xml` / `ComicInfo.xml` if present. It is the **only owner of the archive handle**: `readEntry()` and `readAll()` lock a mutex, because archive libraries are not thread-safe. Opening does **not** decode anything, which is what makes asynchronous opening possible. `Book` itself is synchronous (P5); `PageLoader` calls `open()` on a worker thread. If the file cannot be opened, or no format matches it, `open()` lets the `ArchiveError` from the factory propagate. |
 | `Page` | The assignment's **PAGE**: a lightweight descriptor (*Proxy* / lazy loading). It knows *where* its bytes are, but holds no pixels. Loading is split in two halves, matching the threads of [02 §3.4](02-functional-analysis.md#34-how-does-loading-interact-with-decompression): `readBytes()` (I/O, runs on the book's I/O thread) and `decode(bytes)` (CPU, runs on the pool, with the codec chosen by `ImageCodecFactory`). `decode()` without arguments just chains the two: it is the simple sequential version for tests and for the first demonstrator (assignment, Step 2 Phase A). The result is **not stored in the page**: it goes into `ImageCache`, which has the memory budget. `info` and `state` are filled in progressively by the background probe, so they are thread-safe. Pages are held by pointer (`PagePtr`) so their address never changes. |
 | `PageState` | Lets the UI show a placeholder or an error page, and the loader skip pages known to be corrupt. "Decoded" is **not a page state** ([02 FB-3](02-functional-analysis.md#fb-3--book-and-pages--table-of-contents)): the cache can evict the pixels at any time, so the page would hold a stale state. Whether a page is decoded is answered by `ImageCache::get()`. |
 | `PageSource` | Where a page's bytes come from. A page usually comes from an archive entry, but in **authoring** a new book mixes pages from other books with image files from disk. This abstraction lets `BookBuilder` and `PageExtractor` treat them all the same. (PDF support, as planned in [02 §5](02-functional-analysis.md#5-extension-points), plugs in one level lower, as an `Archive` whose entries are rendered pages.) |
@@ -503,6 +506,8 @@ classDiagram
         +onRendered(RenderedCallback cb) void
         +onProgress(LoadProgressCallback cb) void
         +onPageError(PageErrorCallback cb) void
+        +onBookError(BookErrorCallback cb) void
+        +onTaskError(TaskErrorCallback cb) void
         +runTask(LongTask task) TaskId
         +cancelTask(TaskId id) void
         -m_book shared_ptr~Book~
@@ -587,7 +592,7 @@ classDiagram
 
 | Class | Why it exists |
 |---|---|
-| `PageLoader` | The **single entry point for asynchronous work** (P5): the UI asks it to open a book or render a page, and gets the results through callbacks. Internally it checks the caches, then runs `Page::readBytes()` on the book's I/O thread and `Page::decode(bytes)` followed by `FilterProfile::apply()` on the CPU pool. For a book whose archive is not random-access, it streams the archive once with `Book::readAll()` into the raw bytes cache. For a `Visible` request that misses the cache, it first renders a **fast preview** with `FilterRegistry::previewProfile()` and then the requested profile. Both results arrive through `onRendered`, the first one marked `isPreview` (UI-4). It also handles **prefetching**: `setReadingPosition()` queues the neighbouring pages at `Prefetch` priority, more ahead than behind in the reading direction. `openBook()` also queues the background probe of every page (`Background`), and `onProgress` reports it ("Loading pages 87 / 200"). `runTask()` runs the long operations of authoring and library (save, extract, folder scan) on the same scheduler, so P5 holds: nothing else starts threads. It is **independent of Qt**: callbacks are plain `std::function`s, run on worker threads. |
+| `PageLoader` | The **single entry point for asynchronous work** (P5): the UI asks it to open a book or render a page, and gets the results through callbacks. Internally it checks the caches, then runs `Page::readBytes()` on the book's I/O thread and `Page::decode(bytes)` followed by `FilterProfile::apply()` on the CPU pool. For a book whose archive is not random-access, it streams the archive once with `Book::readAll()` into the raw bytes cache. For a `Visible` request that misses the cache, it first renders a **fast preview** with `FilterRegistry::previewProfile()` and then the requested profile. Both results arrive through `onRendered`, the first one marked `isPreview` (UI-4). It also handles **prefetching**: `setReadingPosition()` queues the neighbouring pages at `Prefetch` priority, more ahead than behind in the reading direction. `openBook()` also queues the background probe of every page (`Background`), and `onProgress` reports it ("Loading pages 87 / 200"). `runTask()` runs the long operations of authoring and library (save, extract, folder scan) on the same scheduler, so P5 holds: nothing else starts threads. It is **independent of Qt**: callbacks are plain `std::function`s, run on worker threads. It is also where **exceptions stop** (P7): an exception thrown on a worker thread is caught there and turned into a callback, with the exception's `what()` as the message. A page that fails to decode goes to `onPageError` and its state becomes `Error`. A book that fails to open goes to `onBookError(path, message)`; the book being read, if any, stays open. A long task that fails goes to `onTaskError(id, message)`; a cancelled task is not an error and reports nothing. |
 | `RenderRequest` | One request from the display: *this page, at this size, with this profile*. The `generation` number lets the loader drop results that arrive after the user has moved on. `isPreview` is set on the result of the fast preview pass, so the view knows a better image is on its way. |
 | `LoaderConfig` | Thread count, the decoded and rendered budgets (the 512 MB total of [02 FB-5](02-functional-analysis.md#fb-5--cache) split between them) and the maximum size of the raw bytes cache. Set from the user's settings. |
 | `Priority` | The three queue levels from [02 FB-6](02-functional-analysis.md#fb-6--asynchronous-loading-and-prefetching): what is on screen first, then the neighbours, then the rest of the book. |
@@ -610,16 +615,16 @@ classDiagram
         +removePage(int index) void
         +pageCount() int
         +setToc(TableOfContents toc) void
-        +save(string path, ProgressCallback progress) bool
+        +save(string path, ProgressCallback progress) void
         -m_sources vector~PageSourcePtr~
         -m_keepAlive vector~BookPtr~
         -m_toc TableOfContents
     }
     class PageExtractor {
-        +extract(Book book, vector~int~ pages, string folder, string codecName, ProgressCallback progress) bool
+        +extract(Book book, vector~int~ pages, string folder, string codecName, ProgressCallback progress) void
     }
     class Library {
-        +open(string databasePath) bool
+        +open(string databasePath) void
         +addBook(string path) BookRecord
         +findByFingerprint(string fingerprint) BookRecord
         +setReadingState(BookId id, ReadingState state) void
@@ -673,12 +678,12 @@ classDiagram
 |---|---|
 | `BookBuilder` | **Assembles a new book** (assignment: "create a book by assembling pages"): an ordered list of `PageSource`s, edited by the authoring window, then written by a `ZipArchiveWriter` as `001.jpg`, `002.png`… so every reader keeps the order. Original bytes are copied unchanged, with no re-encoding and so no quality loss. It also rewrites an existing book to **save a new `toc.xml`** (write to a temporary file, then replace the original). |
 | `PageExtractor` | **Extracts pages** to a folder. Raw copy by default, or decode + encode with the chosen codec when the user converts. |
-| `Library` | Persistent store (SQLite) of the user's books: reading state, tags, recent books, books in progress (FB-9). Books are identified by a **fingerprint** (size + hash of the first KB) as well as their path, so a moved file keeps its tags and position. |
+| `Library` | Persistent store (SQLite) of the user's books: reading state, tags, recent books, books in progress (FB-9). Books are identified by a **fingerprint** (size + hash of the first KB) as well as their path, so a moved file keeps its tags and position. `open()` throws an exception derived from `ComicError` when the database cannot be opened or created. |
 | `BookRecord` | One row of the library, a plain value passed to the UI. `coverPath` points to the cover thumbnail cached on disk. |
 | `BookCollection` | The **BookCollection** suggested by the assignment (p. 5): the books of one series, ordered by volume. Filled from `ComicInfo.xml` (series + volume) when present, or by the user. It powers *"End of book: open Volume 8?"* ([01](01-usage-analysis.md), Scenario 3) and grouping by series in the library view. It holds library records, not open `Book`s: opening a book stays the loader's job. `nextVolume()` returns an empty record when there is none. |
 | `ReadingState` | What is restored when a book is reopened (UI-8): last page, date of last reading (for sorting *recent* and *in progress*), filter profile and display mode. |
 
-Long operations (`save`, `extract`, folder scan) are started with `PageLoader::runTask()`, which runs them on the `JobScheduler`. They report progress through a `ProgressCallback = std::function<bool(int done, int total)>`: returning `false`, or calling `cancelTask()`, cancels the operation (UI-9). `BookBuilder::save()` only replaces the original file once the new archive is complete, so a cancelled save leaves it untouched.
+Long operations (`save`, `extract`, folder scan) are started with `PageLoader::runTask()`, which runs them on the `JobScheduler`. They report progress through a `ProgressCallback = std::function<bool(int done, int total)>`: returning `false`, or calling `cancelTask()`, cancels the operation (UI-9). `save()` and `extract()` return `void` and throw on failure, e.g. `ArchiveError` when the archive cannot be written or `DecodeError` when a page cannot be converted. `runTask()` catches the exception on the worker thread and reports it to the UI. Cancelling is not an error: the operation simply stops. `BookBuilder::save()` only replaces the original file once the new archive is complete, so a failed or cancelled save leaves it untouched.
 
 ---
 
@@ -731,6 +736,8 @@ classDiagram
         +pageRendered(RenderRequest request, QImage image) signal
         +progress(int done, int total) signal
         +pageError(int pageIndex, QString message) signal
+        +bookError(QString path, QString message) signal
+        +taskError(TaskId id, QString message) signal
         -m_loader PageLoader
     }
     QMainWindow <|-- ComicBookReader
@@ -856,7 +863,7 @@ The step-by-step version of the same flow, at the level of functional blocks, is
        /// 7z signature: 37 7A BC AF 27 1C
        static bool matches(const Bytes& header);
 
-       bool open(const std::string& path) override;
+       void open(const std::string& path) override;
        void close() override;
        bool isOpen() const override;
        std::vector<ArchiveEntry> listEntries() const override;

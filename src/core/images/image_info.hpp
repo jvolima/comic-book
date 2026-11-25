@@ -3,8 +3,8 @@
 #include <string>
 
 struct ImageInfo {
-    int width;
-    int height;
-    PixelFormat format;
-    std::string codecName;
+	int width;
+	int height;
+	PixelFormat format;
+	std::string codecName;
 };

@@ -178,7 +178,7 @@ A third, optional level, the **raw bytes cache** *(book, page) → compressed by
   - one **I/O worker per open book** extracts entries in order, because archive handles are not thread-safe;
   - a **pool of CPU workers** (one per core) decodes and resizes pages in parallel;
   - the UI thread is never used for this work.
-- **Notifications** sent back to the UI thread (as Qt queued signals): *book opened (page count)*, *page ready (page, size, filter)*, *progress (done, total)*, *page error (page, reason)*.
+- **Notifications** sent back to the UI thread (as Qt queued signals): *book opened (page count)*, *page ready (page, size, filter)*, *progress (done, total)*, *page error (page, reason)*, *book error (path, reason)* when a book cannot be opened, *task error (task, reason)* when a long job (save, extract, scan) fails.
 
 ---
 
@@ -324,7 +324,7 @@ flowchart TB
 1. The UI asks FB-6 to open a path. The *open book* job runs on the book's I/O worker.
 2. FB-1 reads the **file signature** and chooses the matching archive reader from its registry.
 3. The reader **lists the entries**. For ZIP this means reading the central directory at the end of the file, which is fast. For RAR the headers are read one after the other.
-4. FB-3 builds the page list and FB-6 sends *book opened (page count)*. The UI immediately requests the first page, or the last page read (FB-9).
+4. FB-3 builds the page list and FB-6 sends *book opened (page count)*. The UI immediately requests the first page, or the last page read (FB-9). If any of steps 2–4 fails (unknown format, unreadable file), FB-6 sends *book error (path, reason)* instead, and the book being read, if any, stays open.
 5. The first page goes through the pipeline at P0. Meanwhile the P1 (neighbours) and P2 (probe everything) jobs are queued. The user can **read before the rest of the book is loaded**.
 
 **Reading pages from the archive:**
@@ -336,7 +336,7 @@ flowchart TB
 **Writing (authoring, saving a TOC):**
 
 - FB-8 collects the bytes of each page source (through FB-3), optionally re-encodes them (FB-2), and FB-1 writes the new ZIP to a temporary file, which is then moved into place.
-- The job runs in the background with progress and cancellation. The book being read stays open and usable.
+- The job runs in the background with progress and cancellation. The book being read stays open and usable. If the job fails, FB-6 sends *task error (task, reason)* and the original file is left untouched.
 
 ---
 
