@@ -14,7 +14,7 @@ class Archive {
 		Archive(const Archive&) = delete;
 		Archive& operator=(const Archive&) = delete;
 		virtual ~Archive() = default;
-		virtual bool open(const std::string& path) = 0;
+		virtual void open(const std::string& path) = 0;
 		virtual void close() = 0;
 		virtual bool isOpen() const = 0;
 		virtual std::vector<ArchiveEntry> listEntries() const = 0;

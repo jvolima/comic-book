@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "archives/archive_error.hpp"
 #include "archives/zip_archive.hpp"
 
 namespace {
@@ -49,25 +50,25 @@ TEST(ZipArchiveMatches, DetectsZipByContentNotExtension) {
 
 TEST(ZipArchiveOpen, OpensValidZip) {
 	ZipArchive archive;
-	EXPECT_TRUE(archive.open(samplePath("basic.cbz")));
+	EXPECT_NO_THROW(archive.open(samplePath("basic.cbz")));
 	EXPECT_TRUE(archive.isOpen());
 }
 
 TEST(ZipArchiveOpen, FailsOnRarFile) {
 	ZipArchive archive;
-	EXPECT_FALSE(archive.open(samplePath("basic.cbr")));
+	EXPECT_THROW(archive.open(samplePath("basic.cbr")), ArchiveError);
 	EXPECT_FALSE(archive.isOpen());
 }
 
 TEST(ZipArchiveOpen, FailsOnMissingFile) {
 	ZipArchive archive;
-	EXPECT_FALSE(archive.open(samplePath("does_not_exist.cbz")));
+	EXPECT_THROW(archive.open(samplePath("does_not_exist.cbz")), ArchiveError);
 	EXPECT_FALSE(archive.isOpen());
 }
 
 TEST(ZipArchiveOpen, CloseIsSafeToCallTwice) {
 	ZipArchive archive;
-	ASSERT_TRUE(archive.open(samplePath("basic.cbz")));
+	ASSERT_NO_THROW(archive.open(samplePath("basic.cbz")));
 	archive.close();
 	archive.close();
 	EXPECT_FALSE(archive.isOpen());
@@ -75,25 +76,25 @@ TEST(ZipArchiveOpen, CloseIsSafeToCallTwice) {
 
 TEST(ZipArchiveOpen, OpenReplacesPreviouslyOpenedArchive) {
 	ZipArchive archive;
-	ASSERT_TRUE(archive.open(samplePath("basic.cbz")));
-	ASSERT_TRUE(archive.open(samplePath("different_sizes.cbz")));
+	ASSERT_NO_THROW(archive.open(samplePath("basic.cbz")));
+	ASSERT_NO_THROW(archive.open(samplePath("different_sizes.cbz")));
 	EXPECT_TRUE(archive.isOpen());
 	EXPECT_EQ(archive.listEntries().size(), 4u);
 }
 
 TEST(ZipArchiveOpen, FailedOpenClosesPreviousArchive) {
 	ZipArchive archive;
-	ASSERT_TRUE(archive.open(samplePath("basic.cbz")));
-	EXPECT_FALSE(archive.open(samplePath("does_not_exist.cbz")));
+	ASSERT_NO_THROW(archive.open(samplePath("basic.cbz")));
+	EXPECT_THROW(archive.open(samplePath("does_not_exist.cbz")), ArchiveError);
 	EXPECT_FALSE(archive.isOpen());
-	EXPECT_TRUE(archive.listEntries().empty());
+	EXPECT_THROW(archive.listEntries(), ArchiveError);
 }
 
 TEST(ZipArchiveOpen, ReopensAfterClose) {
 	ZipArchive archive;
-	ASSERT_TRUE(archive.open(samplePath("basic.cbz")));
+	ASSERT_NO_THROW(archive.open(samplePath("basic.cbz")));
 	archive.close();
-	EXPECT_TRUE(archive.open(samplePath("basic.cbz")));
+	EXPECT_NO_THROW(archive.open(samplePath("basic.cbz")));
 	EXPECT_TRUE(archive.isOpen());
 	EXPECT_EQ(archive.listEntries().size(), 10u);
 }
@@ -101,38 +102,43 @@ TEST(ZipArchiveOpen, ReopensAfterClose) {
 TEST(ZipArchiveCorrupt, OpenFailsOnTruncatedArchive) {
 	ZipArchive archive;
 	EXPECT_TRUE(ZipArchive::matches(readHeader(samplePath("truncated.cbz"))));
-	EXPECT_FALSE(archive.open(samplePath("truncated.cbz")));
+	EXPECT_THROW(archive.open(samplePath("truncated.cbz")), ArchiveError);
 	EXPECT_FALSE(archive.isOpen());
 }
 
-TEST(ZipArchiveCorrupt, ReadEntryReturnsEmptyForCorruptEntry) {
+TEST(ZipArchiveCorrupt, ReadEntryThrowsForCorruptEntry) {
 	ZipArchive archive;
-	ASSERT_TRUE(archive.open(samplePath("corrupt_entry.cbz")));
-	EXPECT_TRUE(archive.readEntry("02.jpg").empty());
+	ASSERT_NO_THROW(archive.open(samplePath("corrupt_entry.cbz")));
+	EXPECT_THROW(archive.readEntry("02.jpg"), ArchiveError);
 }
 
 TEST(ZipArchiveCorrupt, CorruptEntryDoesNotAffectOtherEntries) {
 	ZipArchive archive;
-	ASSERT_TRUE(archive.open(samplePath("corrupt_entry.cbz")));
+	ASSERT_NO_THROW(archive.open(samplePath("corrupt_entry.cbz")));
 	EXPECT_EQ(archive.listEntries().size(), 2u);
-	EXPECT_TRUE(archive.readEntry("02.jpg").empty());
+	EXPECT_THROW(archive.readEntry("02.jpg"), ArchiveError);
 	EXPECT_EQ(archive.readEntry("01.jpg").size(), 44680u);
 }
 
-TEST(ZipArchiveClosed, ListEntriesReturnsEmpty) {
+TEST(ZipArchiveClosed, ListEntriesThrows) {
 	ZipArchive archive;
-	EXPECT_TRUE(archive.listEntries().empty());
+	EXPECT_THROW(archive.listEntries(), ArchiveError);
 }
 
-TEST(ZipArchiveClosed, ReadEntryReturnsEmpty) {
+TEST(ZipArchiveClosed, ReadEntryThrows) {
 	ZipArchive archive;
-	EXPECT_TRUE(archive.readEntry("01.jpg").empty());
+	EXPECT_THROW(archive.readEntry("01.jpg"), ArchiveError);
+}
+
+TEST(ZipArchiveClosed, ReadAllThrows) {
+	ZipArchive archive;
+	EXPECT_THROW(archive.readAll([](const ArchiveEntry&, const Bytes&) { return true; }), ArchiveError);
 }
 
 class ZipArchiveTest : public ::testing::Test {
 	protected:
 		void SetUp() override {
-			ASSERT_TRUE(m_archive.open(samplePath("basic.cbz")));
+			ASSERT_NO_THROW(m_archive.open(samplePath("basic.cbz")));
 		}
 		ZipArchive m_archive;
 };
@@ -157,8 +163,8 @@ TEST_F(ZipArchiveTest, ReadEntryReturnsUncompressedBytes) {
 	EXPECT_EQ(data[2], 0xFF);
 }
 
-TEST_F(ZipArchiveTest, ReadEntryReturnsEmptyForUnknownName) {
-	EXPECT_TRUE(m_archive.readEntry("missing.jpg").empty());
+TEST_F(ZipArchiveTest, ReadEntryThrowsForUnknownName) {
+	EXPECT_THROW(m_archive.readEntry("missing.jpg"), ArchiveError);
 }
 
 TEST_F(ZipArchiveTest, ReadAllVisitsEveryFileInOrder) {
@@ -191,7 +197,7 @@ TEST_F(ZipArchiveTest, FormatNameIsZip) {
 
 TEST(ZipArchiveDirectories, FlagsDirectoryEntries) {
 	ZipArchive archive;
-	ASSERT_TRUE(archive.open(samplePath("mixed.cbz")));
+	ASSERT_NO_THROW(archive.open(samplePath("mixed.cbz")));
 	std::vector<ArchiveEntry> entries = archive.listEntries();
 	const ArchiveEntry* folder = findEntry(entries, "subfolder/");
 	ASSERT_NE(folder, nullptr);
@@ -203,7 +209,7 @@ TEST(ZipArchiveDirectories, FlagsDirectoryEntries) {
 
 TEST(ZipArchiveDirectories, ReadAllSkipsDirectories) {
 	ZipArchive archive;
-	ASSERT_TRUE(archive.open(samplePath("mixed.cbz")));
+	ASSERT_NO_THROW(archive.open(samplePath("mixed.cbz")));
 	int calls = 0;
 	archive.readAll([&](const ArchiveEntry& entry, const Bytes&) {
 		EXPECT_FALSE(entry.isDirectory) << entry.name;

@@ -10,7 +10,7 @@ class ZipArchive: public Archive {
 		std::unique_ptr<zip_t, decltype(&zip_discard)> m_zip{nullptr, &zip_discard};
 	public:
 		static bool matches(const Bytes& header);
-		bool open(const std::string& path) override;
+		void open(const std::string& path) override;
 		void close() override;
 		bool isOpen() const override;
 		std::vector<ArchiveEntry> listEntries() const override;
