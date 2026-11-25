@@ -26,6 +26,9 @@ target_include_directories(comic_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/cor
 find_package(libzip REQUIRED)
 target_link_libraries(comic_core PUBLIC libzip::zip)
 
+find_package(LibArchive REQUIRED)
+target_link_libraries(comic_core PUBLIC LibArchive::LibArchive)
+
 # ---------- Unit tests (GoogleTest) ----------
 include(FetchContent)
 
