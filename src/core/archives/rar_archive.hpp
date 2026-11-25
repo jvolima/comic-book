@@ -12,7 +12,7 @@ class RarArchive : public Archive {
         RarArchive();
         ~RarArchive() = default;
         static bool matches(const Bytes& header);
-        bool open(const std::string& path) override;
+        void open(const std::string& path) override;
 		void close() override;
 		bool isOpen() const override;
 		std::vector<ArchiveEntry> listEntries() const override;

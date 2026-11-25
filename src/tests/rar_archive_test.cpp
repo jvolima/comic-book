@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "archives/rar_archive.hpp"
+#include "errors/archive_error.hpp"
 
 namespace {
 	std::string samplePath(const std::string& fileName) {
@@ -64,25 +65,28 @@ TEST(RarArchiveMatches, DetectsRarByContentNotExtension) {
 
 TEST(RarArchiveOpen, OpensValidRar) {
     RarArchive archive;
-    EXPECT_TRUE(archive.open(samplePath("basic.cbr")));
+
+    EXPECT_NO_THROW(archive.open(samplePath("basic.cbr")));
     EXPECT_TRUE(archive.isOpen());
 }
 
 TEST(RarArchiveOpen, FailsOnZipFile) {
     RarArchive archive;
-    EXPECT_FALSE(archive.open(samplePath("basic.cbz")));
+
+    EXPECT_THROW(archive.open(samplePath("basic.cbz")), ArchiveError);
     EXPECT_FALSE(archive.isOpen());
 }
 
 TEST(RarArchiveOpen, FailsOnMissingFile) {
     RarArchive archive;
-    EXPECT_FALSE(archive.open(samplePath("does_not_exist.cbr")));
+
+    EXPECT_THROW(archive.open(samplePath("does_not_exist.cbr")), ArchiveError);
     EXPECT_FALSE(archive.isOpen());
 }
 
 TEST(RarArchiveOpen, CloseIsSafeToCallTwice) {
     RarArchive archive;
-    ASSERT_TRUE(archive.open(samplePath("basic.cbr")));
+    ASSERT_NO_THROW(archive.open(samplePath("basic.cbr")));
 
     archive.close();
     archive.close();
@@ -92,36 +96,40 @@ TEST(RarArchiveOpen, CloseIsSafeToCallTwice) {
 
 TEST(RarArchiveOpen, OpenReplacesPreviouslyOpenedArchive) {
     RarArchive archive;
-    ASSERT_TRUE(archive.open(samplePath("basic.cbr")));
+    ASSERT_NO_THROW(archive.open(samplePath("basic.cbr")));
 
-    ASSERT_TRUE(archive.open(samplePath("basic.cbr")));
+    ASSERT_NO_THROW(archive.open(samplePath("basic.cbr")));
 
     EXPECT_TRUE(archive.isOpen());
 }
 
 TEST(RarArchiveOpen, FailedOpenClosesPreviousArchive) {
     RarArchive archive;
-    ASSERT_TRUE(archive.open(samplePath("basic.cbr")));
+    ASSERT_NO_THROW(archive.open(samplePath("basic.cbr")));
 
-    EXPECT_FALSE(archive.open(samplePath("does_not_exist.cbr")));
+    EXPECT_THROW(
+        archive.open(samplePath("does_not_exist.cbr")),
+        ArchiveError
+    );
+
     EXPECT_FALSE(archive.isOpen());
-    EXPECT_TRUE(archive.listEntries().empty());
+    EXPECT_THROW(archive.listEntries(), ArchiveError);
 }
 
 TEST(RarArchiveOpen, ReopensAfterClose) {
     RarArchive archive;
-    ASSERT_TRUE(archive.open(samplePath("basic.cbr")));
+    ASSERT_NO_THROW(archive.open(samplePath("basic.cbr")));
 
     archive.close();
 
-    EXPECT_TRUE(archive.open(samplePath("basic.cbr")));
+    EXPECT_NO_THROW(archive.open(samplePath("basic.cbr")));
     EXPECT_TRUE(archive.isOpen());
 }
 
 class RarArchiveTest : public ::testing::Test {
     protected:
         void SetUp() override {
-            ASSERT_TRUE(m_archive.open(samplePath("basic.cbr")));
+            ASSERT_NO_THROW(m_archive.open(samplePath("basic.cbr")));
         }
 
         RarArchive m_archive;
@@ -167,7 +175,7 @@ TEST_F(RarArchiveTest, FormatNameIsRar) {
     EXPECT_EQ(m_archive.formatName(), "RAR");
 }
 
-TEST(RarArchiveClosed, ListEntriesReturnsEmpty) {
+TEST(RarArchiveClosed, ListEntriesThrowsWhenArchiveIsNotOpen) {
     RarArchive archive;
-    EXPECT_TRUE(archive.listEntries().empty());
+    EXPECT_THROW(archive.listEntries(), ArchiveError);
 }

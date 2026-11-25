@@ -1,5 +1,5 @@
 #include "archives/zip_archive.hpp"
-#include "archives/archive_error.hpp"
+#include "errors/archive_error.hpp"
 
 // ZIP magic number: 50 4B 03 04
 bool ZipArchive::matches(const Bytes& header) {

@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "archives/archive_error.hpp"
+#include "errors/archive_error.hpp"
 #include "archives/zip_archive.hpp"
 
 namespace {

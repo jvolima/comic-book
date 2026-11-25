@@ -1,5 +1,6 @@
 #include "archives/rar_archive.hpp"
 #include <archive_entry.h>
+#include "errors/archive_error.hpp"
 
 RarArchive::RarArchive() : m_archive(nullptr, archive_read_free) {}
 
@@ -23,26 +24,42 @@ bool RarArchive::matches(const Bytes& header) {
     return false;
 }
 
-bool RarArchive::open(const std::string& path) {
+void RarArchive::open(const std::string& path) {
     close();
 
-    this->m_archive.reset(archive_read_new());
+    m_archive.reset(archive_read_new());
 
-    if (!this->m_archive) {
-        return false;
+    if (!m_archive) {
+        throw ArchiveError("Failed to create RAR archive reader");
     }
 
-    if (archive_read_support_format_rar(this->m_archive.get()) != ARCHIVE_OK || archive_read_support_format_rar5(this->m_archive.get()) != ARCHIVE_OK) {
+    if (archive_read_support_format_rar(m_archive.get()) != ARCHIVE_OK ||
+        archive_read_support_format_rar5(m_archive.get()) != ARCHIVE_OK) {
+
+        const char* error = archive_error_string(m_archive.get());
+        std::string message = "Failed to enable RAR format support";
+
+        if (error) {
+            message += ": ";
+            message += error;
+        }
+
         close();
-        return false;
+        throw ArchiveError(message);
     }
 
-    if (archive_read_open_filename(this->m_archive.get(), path.c_str(), 10240) != ARCHIVE_OK) {
+    if (archive_read_open_filename(m_archive.get(), path.c_str(), 10240) != ARCHIVE_OK) {
+        const char* error = archive_error_string(m_archive.get());
+        std::string message = "Failed to open RAR archive '" + path + "'";
+
+        if (error) {
+            message += ": ";
+            message += error;
+        }
+
         close();
-        return false;
+        throw ArchiveError(message);
     }
-
-    return true;
 }
 
 void RarArchive::close() {
@@ -57,14 +74,32 @@ bool RarArchive::isOpen() const {
 }
 
 std::vector<ArchiveEntry> RarArchive::listEntries() const {
-    std::vector<ArchiveEntry> entries;
-
-    if (!this->m_archive) {
-        return entries;
+    if (!isOpen()) {
+        throw ArchiveError("Cannot list entries: archive is not open");
     }
 
+    std::vector<ArchiveEntry> entries;
     struct archive_entry* entry;
-    while (archive_read_next_header(this->m_archive.get(), &entry) == ARCHIVE_OK) {
+
+    while (true) {
+        int result = archive_read_next_header(m_archive.get(), &entry);
+
+        if (result == ARCHIVE_EOF) {
+            break;
+        }
+
+        if (result != ARCHIVE_OK) {
+            const char* error = archive_error_string(m_archive.get());
+            std::string message = "Failed to read RAR archive entries";
+
+            if (error) {
+                message += ": ";
+                message += error;
+            }
+
+            throw ArchiveError(message);
+        }
+
         ArchiveEntry aux;
 
         std::string path = archive_entry_pathname(entry);
@@ -76,10 +111,21 @@ std::vector<ArchiveEntry> RarArchive::listEntries() const {
         aux.size = archive_entry_size(entry);
         aux.isDirectory = (archive_entry_filetype(entry) == AE_IFDIR);
 
-        archive_read_data_skip(this->m_archive.get());
+        if (archive_read_data_skip(m_archive.get()) != ARCHIVE_OK) {
+            const char* error = archive_error_string(m_archive.get());
+            std::string message = "Failed to skip RAR archive entry '" + aux.name + "'";
+
+            if (error) {
+                message += ": ";
+                message += error;
+            }
+
+            throw ArchiveError(message);
+        }
 
         entries.push_back(aux);
     }
+
     return entries;
 }
 
