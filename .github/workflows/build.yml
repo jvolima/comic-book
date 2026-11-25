@@ -18,8 +18,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Install libzip
-        run: sudo apt-get update && sudo apt-get install -y libzip-dev zipcmp zipmerge ziptool
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y libzip-dev libarchive-dev zipcmp zipmerge ziptool
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
@@ -46,8 +46,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Install libzip
-        run: sudo apt-get update && sudo apt-get install -y libzip-dev zipcmp zipmerge ziptool
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y libzip-dev libarchive-dev zipcmp zipmerge ziptool
 
       - name: Configure
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_UI=OFF
