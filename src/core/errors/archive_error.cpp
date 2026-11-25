@@ -1,3 +1,3 @@
-#include "archives/archive_error.hpp"
+#include "errors/archive_error.hpp"
 
 ArchiveError::ArchiveError(const std::string& message) : ComicError(message) { }
