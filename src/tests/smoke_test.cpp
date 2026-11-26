@@ -7,5 +7,5 @@ TEST(SmokeTest, FrameworkRuns) {
 
 // Checks that the SAMPLES_DIR compile definition reaches the tests.
 TEST(SmokeTest, SamplesDirIsDefined) {
-  EXPECT_STRNE(SAMPLES_DIR, "");
+	EXPECT_STRNE(SAMPLES_DIR, "");
 }

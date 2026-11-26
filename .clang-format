@@ -1,0 +1,59 @@
+# Code style for clang-format (used by VS Code's C/C++ extension on save).
+BasedOnStyle: LLVM
+
+# Indentation: one tab per level, shown as 2 columns (matches .editorconfig).
+UseTab: ForIndentation
+IndentWidth: 2
+TabWidth: 2
+ContinuationIndentWidth: 2
+
+# Braces on the same line: `if (x) {`, `void f() {`, `class A {`.
+BreakBeforeBraces: Attach
+
+# `public:` / `private:` flush with the class, members one level in
+# (struct fields too).
+IndentAccessModifiers: false
+AccessModifierOffset: -2
+EmptyLineBeforeAccessModifier: Leave
+
+# Contents of namespaces are indented.
+NamespaceIndentation: All
+# No `// namespace` comment added after the closing brace.
+FixNamespaceComments: false
+
+# `case` labels indented inside `switch`.
+IndentCaseLabels: true
+
+# Never rewrap long lines.
+ColumnLimit: 0
+
+# Always use a block for if/loops, never `if (x) return;` on one line.
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Never
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortLambdasOnASingleLine: All
+
+# `zip_t* archive`, `const Bytes& data`.
+PointerAlignment: Left
+
+# `class ArchiveError : public ComicError` (LLVM default, kept explicit).
+SpaceBeforeInheritanceColon: true
+
+# Includes, in groups separated by a blank line, each sorted alphabetically:
+#   0. the file's own header (foo.hpp in foo.cpp or foo_test.cpp)
+#   1. C++ standard library     <string>, <cstdint>
+#   2. other libraries          <zip.h>, <gtest/gtest.h>, <QMainWindow>
+#   3. project headers          "archives/archive.hpp"
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+IncludeIsMainRegex: '(_test)?$'
+IncludeCategories:
+  - Regex: '^<[a-z_]+>$'
+    Priority: 1
+  - Regex: '^<.*>$'
+    Priority: 2
+  - Regex: '^".*"$'
+    Priority: 3
+
+InsertNewlineAtEOF: true

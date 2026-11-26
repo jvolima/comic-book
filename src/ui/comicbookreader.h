@@ -12,11 +12,11 @@ QT_END_NAMESPACE
 class ComicBookReader : public QMainWindow {
 	Q_OBJECT
 
-	public:
-		explicit ComicBookReader(QWidget *parent = nullptr);
-		~ComicBookReader();
+public:
+	explicit ComicBookReader(QWidget* parent = nullptr);
+	~ComicBookReader();
 
-	private:
-		Ui::ComicBookReader *ui;
-		QString currentFile;
+private:
+	Ui::ComicBookReader* ui;
+	QString currentFile;
 };
