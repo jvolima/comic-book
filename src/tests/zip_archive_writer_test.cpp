@@ -10,9 +10,9 @@
 #include <gtest/gtest.h>
 
 #include "archives/archive_entry.hpp"
-#include "archives/archive_error.hpp"
 #include "archives/zip_archive.hpp"
 #include "bytes.hpp"
+#include "errors/archive_error.hpp"
 #include "test_helpers.hpp"
 
 namespace fs = std::filesystem;

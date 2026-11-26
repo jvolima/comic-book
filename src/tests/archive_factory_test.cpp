@@ -8,23 +8,16 @@
 #include <gtest/gtest.h>
 
 #include "archives/archive.hpp"
-#include "archives/archive_error.hpp"
 #include "archives/archive_format.hpp"
 #include "archives/archive_writer.hpp"
 #include "archives/builtin_archive_formats.hpp"
 #include "archives/zip_archive.hpp"
+#include "errors/archive_error.hpp"
 #include "test_helpers.hpp"
-
-const std::string kReadOnlyFormat = "TEST-READ-ONLY";
 
 ArchiveFactory& factory() {
 	static const bool registered = [] {
 		registerBuiltinArchiveFormats();
-		ArchiveFormat readOnly;
-		readOnly.name = kReadOnlyFormat;
-		readOnly.extensions = {"tro"};
-		readOnly.createReader = [] { return std::make_unique<ZipArchive>(); };
-		ArchiveFactory::instance().registerFormat(readOnly);
 		return true;
 	}();
 	(void)registered;
@@ -41,13 +34,15 @@ TEST(ArchiveFactoryInstance, ReturnsTheSameObject) {
 
 TEST(ArchiveFactoryRegister, RejectsDuplicateName) {
 	ArchiveFormat duplicate{"ZIP", {"cbz"}, &ZipArchive::matches, [] { return std::make_unique<ZipArchive>(); }, nullptr};
-	EXPECT_THROW(factory().registerFormat(duplicate), ArchiveError);
+	ArchiveFactory& archiveFactory = factory();
+	EXPECT_THROW(archiveFactory.registerFormat(duplicate), ArchiveError);
 }
 
 TEST(ArchiveFactoryRegister, RejectsFormatWithoutReader) {
 	ArchiveFormat noReader{"TEST-NO-READER", {"tnr"}, &ZipArchive::matches, nullptr, nullptr};
-	EXPECT_THROW(factory().registerFormat(noReader), ArchiveError);
-	EXPECT_FALSE(contains(factory().supportedExtensions(), "tnr"));
+	ArchiveFactory& archiveFactory = factory();
+	EXPECT_THROW(archiveFactory.registerFormat(noReader), ArchiveError);
+	EXPECT_FALSE(contains(archiveFactory.supportedExtensions(), "tnr"));
 }
 
 TEST(ArchiveFactoryRegister, BuiltinFormatsCannotBeRegisteredTwice) {
@@ -57,6 +52,10 @@ TEST(ArchiveFactoryRegister, BuiltinFormatsCannotBeRegisteredTwice) {
 
 TEST(ArchiveFactoryDetect, DetectsZip) {
 	EXPECT_EQ(factory().detect(samplePath("basic.cbz")).name, "ZIP");
+}
+
+TEST(ArchiveFactoryDetect, DetectsRar) {
+	EXPECT_EQ(factory().detect(samplePath("basic.cbr")).name, "RAR");
 }
 
 TEST(ArchiveFactoryDetect, DetectsByContentNotExtension) {
@@ -77,6 +76,14 @@ TEST(ArchiveFactoryOpen, ReturnsOpenArchive) {
 	EXPECT_TRUE(archive->isOpen());
 	EXPECT_EQ(archive->formatName(), "ZIP");
 	EXPECT_EQ(archive->listEntries().size(), 10u);
+}
+
+TEST(ArchiveFactoryOpen, ReturnsOpenRarArchive) {
+	std::unique_ptr<Archive> archive = factory().open(samplePath("basic.cbr"));
+	ASSERT_NE(archive, nullptr);
+	EXPECT_TRUE(archive->isOpen());
+	EXPECT_EQ(archive->formatName(), "RAR");
+	EXPECT_EQ(archive->listEntries().size(), 5u);
 }
 
 TEST(ArchiveFactoryOpen, OpensZipWithWrongExtension) {
@@ -108,13 +115,14 @@ TEST(ArchiveFactoryCreateWriter, ThrowsForUnknownFormat) {
 	EXPECT_THROW(factory().createWriter("NOPE"), ArchiveError);
 }
 
-TEST(ArchiveFactoryCreateWriter, ThrowsForReadOnlyFormat) {
-	EXPECT_THROW(factory().createWriter(kReadOnlyFormat), ArchiveError);
+TEST(ArchiveFactoryCreateWriter, ThrowsForRar) {
+	EXPECT_THROW(factory().createWriter("RAR"), ArchiveError);
 }
 
 TEST(ArchiveFactorySupportedExtensions, ListsEveryRegisteredExtension) {
 	std::vector<std::string> extensions = factory().supportedExtensions();
 	EXPECT_TRUE(contains(extensions, "cbz"));
 	EXPECT_TRUE(contains(extensions, "zip"));
-	EXPECT_TRUE(contains(extensions, "tro"));
+	EXPECT_TRUE(contains(extensions, "cbr"));
+	EXPECT_TRUE(contains(extensions, "rar"));
 }

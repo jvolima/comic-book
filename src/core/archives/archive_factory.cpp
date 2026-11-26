@@ -4,8 +4,8 @@
 #include <fstream>
 #include <ios>
 
-#include "archives/archive_error.hpp"
 #include "bytes.hpp"
+#include "errors/archive_error.hpp"
 
 ArchiveFactory& ArchiveFactory::instance() {
 	static ArchiveFactory instance;

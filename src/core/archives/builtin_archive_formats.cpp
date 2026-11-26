@@ -4,6 +4,7 @@
 
 #include "archives/archive_factory.hpp"
 #include "archives/archive_format.hpp"
+#include "archives/rar_archive.hpp"
 #include "archives/zip_archive.hpp"
 #include "archives/zip_archive_writer.hpp"
 
@@ -17,4 +18,11 @@ void registerBuiltinArchiveFormats() {
 	zip.createReader = [] { return std::make_unique<ZipArchive>(); };
 	zip.createWriter = [] { return std::make_unique<ZipArchiveWriter>(); };
 	factory.registerFormat(zip);
+
+	ArchiveFormat rar;
+	rar.name = "RAR";
+	rar.extensions = {"cbr", "rar"};
+	rar.matches = &RarArchive::matches;
+	rar.createReader = [] { return std::make_unique<RarArchive>(); };
+	factory.registerFormat(rar);
 }

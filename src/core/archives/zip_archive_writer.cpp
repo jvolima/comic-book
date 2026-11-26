@@ -5,7 +5,7 @@
 #include <filesystem>
 #include <system_error>
 
-#include "archives/archive_error.hpp"
+#include "errors/archive_error.hpp"
 
 void ZipArchiveWriter::create(const std::string& path) {
 	std::filesystem::path parent = std::filesystem::path(path).parent_path();
