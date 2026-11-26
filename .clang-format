@@ -40,8 +40,20 @@ PointerAlignment: Left
 # `class ArchiveError : public ComicError` (LLVM default, kept explicit).
 SpaceBeforeInheritanceColon: true
 
-# Keep the include order as written.
-SortIncludes: Never
-IncludeBlocks: Preserve
+# Includes, in groups separated by a blank line, each sorted alphabetically:
+#   0. the file's own header (foo.hpp in foo.cpp or foo_test.cpp)
+#   1. C++ standard library     <string>, <cstdint>
+#   2. other libraries          <zip.h>, <gtest/gtest.h>, <QMainWindow>
+#   3. project headers          "archives/archive.hpp"
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+IncludeIsMainRegex: '(_test)?$'
+IncludeCategories:
+  - Regex: '^<[a-z_]+>$'
+    Priority: 1
+  - Regex: '^<.*>$'
+    Priority: 2
+  - Regex: '^".*"$'
+    Priority: 3
 
 InsertNewlineAtEOF: true

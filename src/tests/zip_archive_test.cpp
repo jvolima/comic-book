@@ -1,31 +1,32 @@
-#include <gtest/gtest.h>
+#include "archives/zip_archive.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <fstream>
+#include <ios>
 #include <string>
 #include <vector>
 
-#include "errors/archive_error.hpp"
+#include <gtest/gtest.h>
+
+#include "archives/archive_entry.hpp"
 #include "archives/zip_archive.hpp"
+#include "bytes.hpp"
+#include "errors/archive_error.hpp"
+#include "test_helpers.hpp"
 
-namespace {
-	std::string samplePath(const std::string& fileName) {
-		return std::string(SAMPLES_DIR) + "/" + fileName;
-	}
+Bytes readHeader(const std::string& path, std::size_t count = 8) {
+	std::ifstream file(path, std::ios::binary);
+	Bytes header(count);
+	file.read(reinterpret_cast<char*>(header.data()), static_cast<std::streamsize>(count));
+	header.resize(static_cast<std::size_t>(file.gcount()));
+	return header;
+}
 
-	Bytes readHeader(const std::string& path, std::size_t count = 8) {
-		std::ifstream file(path, std::ios::binary);
-		Bytes header(count);
-		file.read(reinterpret_cast<char*>(header.data()), static_cast<std::streamsize>(count));
-		header.resize(static_cast<std::size_t>(file.gcount()));
-		return header;
-	}
-
-	const ArchiveEntry* findEntry(const std::vector<ArchiveEntry>& entries, const std::string& name) {
-		auto it = std::find_if(
-		  entries.begin(), entries.end(), [&](const ArchiveEntry& entry) { return entry.name == name; });
-		return it == entries.end() ? nullptr : &*it;
-	}
+const ArchiveEntry* findEntry(const std::vector<ArchiveEntry>& entries, const std::string& name) {
+	auto it = std::find_if(
+	  entries.begin(), entries.end(), [&](const ArchiveEntry& entry) { return entry.name == name; });
+	return it == entries.end() ? nullptr : &*it;
 }
 
 TEST(ZipArchiveMatches, AcceptsZipSignature) {

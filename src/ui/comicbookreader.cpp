@@ -1,4 +1,5 @@
 #include "comicbookreader.h"
+
 #include "ui_comicbookreader.h"
 
 ComicBookReader::ComicBookReader(QWidget* parent) : QMainWindow(parent), ui(new Ui::ComicBookReader) {

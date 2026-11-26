@@ -1,7 +1,10 @@
 #pragma once
 
-#include "images/pixel_format.hpp"
+#include <cstddef>
+#include <cstdint>
+
 #include "bytes.hpp"
+#include "images/pixel_format.hpp"
 
 class Image {
 private:

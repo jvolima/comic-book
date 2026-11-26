@@ -1,4 +1,5 @@
 #include "archives/zip_archive.hpp"
+
 #include "errors/archive_error.hpp"
 
 // ZIP magic number: 50 4B 03 04

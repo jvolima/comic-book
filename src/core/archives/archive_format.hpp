@@ -1,12 +1,13 @@
 #pragma once
 
 #include <functional>
+#include <memory>
 #include <string>
 #include <vector>
-#include <memory>
-#include "bytes.hpp"
+
 #include "archives/archive.hpp"
 #include "archives/archive_writer.hpp"
+#include "bytes.hpp"
 
 using SignatureMatcher = bool (*)(const Bytes& header);
 using ReaderCreator = std::function<std::unique_ptr<Archive>()>;

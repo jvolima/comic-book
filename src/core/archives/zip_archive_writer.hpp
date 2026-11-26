@@ -1,9 +1,12 @@
 #pragma once
 
-#include <zip.h>
 #include <memory>
-#include "bytes.hpp"
+#include <string>
+
+#include <zip.h>
+
 #include "archives/archive_writer.hpp"
+#include "bytes.hpp"
 
 class ZipArchiveWriter : public ArchiveWriter {
 private:

@@ -1,9 +1,14 @@
 #pragma once
 
-#include <zip.h>
 #include <memory>
-#include "bytes.hpp"
+#include <string>
+#include <vector>
+
+#include <zip.h>
+
 #include "archives/archive.hpp"
+#include "archives/archive_entry.hpp"
+#include "bytes.hpp"
 
 class ZipArchive : public Archive {
 private:

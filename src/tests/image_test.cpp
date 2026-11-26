@@ -1,6 +1,11 @@
+#include "images/image.hpp"
+
+#include <cstddef>
+#include <cstdint>
+
 #include <gtest/gtest.h>
 
-#include "images/image.hpp"
+#include "images/pixel_format.hpp"
 
 TEST(ImageTest, StoresDimensionsCorrectly) {
 	Image image(10, 5, RGB8);

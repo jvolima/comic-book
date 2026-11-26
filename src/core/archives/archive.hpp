@@ -3,8 +3,9 @@
 #include <functional>
 #include <string>
 #include <vector>
-#include "bytes.hpp"
+
 #include "archives/archive_entry.hpp"
+#include "bytes.hpp"
 
 using EntryVisitor = std::function<bool(const ArchiveEntry&, const Bytes&)>;
 

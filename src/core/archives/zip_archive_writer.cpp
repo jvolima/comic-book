@@ -1,12 +1,13 @@
+#include "archives/zip_archive_writer.hpp"
+
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
-#include "archives/zip_archive_writer.hpp"
+#include <system_error>
+
 #include "archives/archive_error.hpp"
 
 void ZipArchiveWriter::create(const std::string& path) {
-	// zip_open() does not touch the disk, so a missing directory would only
-	// be detected in finish(): check it now.
 	std::filesystem::path parent = std::filesystem::path(path).parent_path();
 	std::error_code ignored;
 	if (!parent.empty() && !std::filesystem::is_directory(parent, ignored)) {
@@ -56,7 +57,6 @@ void ZipArchiveWriter::finish() {
 		throw ArchiveError("Cannot finish: archive is not open");
 	}
 
-	// With no entries, zip_close() writes nothing and deletes any existing file.
 	if (zip_get_num_entries(m_zip.get(), 0) == 0) {
 		m_zip.reset();
 		throw ArchiveError("Cannot finish: archive has no entries");

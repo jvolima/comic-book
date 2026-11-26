@@ -1,35 +1,36 @@
-#include <gtest/gtest.h>
+#include "archives/zip_archive_writer.hpp"
 
+#include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <string>
+#include <system_error>
 #include <vector>
 
+#include <gtest/gtest.h>
+
+#include "archives/archive_entry.hpp"
 #include "archives/archive_error.hpp"
 #include "archives/zip_archive.hpp"
-#include "archives/zip_archive_writer.hpp"
+#include "bytes.hpp"
+#include "test_helpers.hpp"
 
 namespace fs = std::filesystem;
 
-namespace {
-	std::string samplePath(const std::string& fileName) {
-		return std::string(SAMPLES_DIR) + "/" + fileName;
+Bytes makeBytes(std::size_t size, std::uint8_t seed) {
+	Bytes bytes(size);
+	for (std::size_t i = 0; i < size; i++) {
+		bytes[i] = static_cast<std::uint8_t>(seed + i * 31);
 	}
+	return bytes;
+}
 
-	Bytes makeBytes(std::size_t size, std::uint8_t seed) {
-		Bytes bytes(size);
-		for (std::size_t i = 0; i < size; i++) {
-			bytes[i] = static_cast<std::uint8_t>(seed + i * 31);
-		}
-		return bytes;
+std::vector<std::string> entryNames(const ZipArchive& archive) {
+	std::vector<std::string> names;
+	for (const ArchiveEntry& entry : archive.listEntries()) {
+		names.push_back(entry.name);
 	}
-
-	std::vector<std::string> entryNames(const ZipArchive& archive) {
-		std::vector<std::string> names;
-		for (const ArchiveEntry& entry : archive.listEntries()) {
-			names.push_back(entry.name);
-		}
-		return names;
-	}
+	return names;
 }
 
 class ZipArchiveWriterTest : public ::testing::Test {

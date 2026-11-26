@@ -1,6 +1,8 @@
 #pragma once
-#include "images/pixel_format.hpp"
+
 #include <string>
+
+#include "images/pixel_format.hpp"
 
 struct ImageInfo {
 	int width;
